@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 from app import Images,Spreads,Uploads
 from content import Spreadables
-from store import Store
-from models import Product
 from main import Efforia
-from feedly.payments import Baskets
 
 def efforia_main(request):
     e = Efforia()

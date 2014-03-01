@@ -19,12 +19,17 @@
 
 # ATTENTION: Deprecated module.
 
-import gdata.youtube
-import gdata.media
+
 import json
-from dropbox import client, rest, session
 from StringIO import StringIO
 from xml.dom.minidom import parseString
+
+try:
+    import gdata.youtube
+    import gdata.media
+    from dropbox import client, rest, session
+except ImportError,e:
+    pass
 
 #apis = json.load(open('settings.json','r'))
 #google_api = apis['social']['google']

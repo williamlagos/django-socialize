@@ -16,7 +16,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Efforia. If not, see <http://www.gnu.org/licenses/>.
 #
-import os.path
+import sys,os
+
+sys.path.append(os.path.abspath('..'))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -36,7 +38,7 @@ SECRET_KEY = 'x5dvfbk$u-(07^f1229p*_%rcuc+nka45j6awo==*jkyjiucql'
 
 STATIC_ROOT = os.path.abspath('static')
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.abspath('efforia/public')]
+STATICFILES_DIRS = [os.path.abspath('public')]
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
@@ -45,7 +47,7 @@ STATICFILES_FINDERS = (
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'efforia.sqlite',
+        'NAME': 'dev.db',
     }
 }
 
@@ -73,12 +75,12 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
 )
 
-ROOT_URLCONF = 'urls'
-WSGI_APPLICATION = 'efforia.wsgi.application'
+ROOT_URLCONF = 'demo.urls'
+WSGI_APPLICATION = 'demo.wsgi.application'
 TEMPLATE_DIRS = [
-    os.path.abspath('efforia/templates/control'),
-    os.path.abspath('efforia/templates/context'),
-    os.path.abspath('efforia/templates/'),
+    os.path.abspath('templates/control'),
+    os.path.abspath('templates/context'),
+    os.path.abspath('templates/'),
     os.path.abspath('static'),
 ]
 
@@ -90,15 +92,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
-    'provider.oauth2',
-    'crispy_forms',
     'social_auth',
     'socialize',
-    'shipping',
-    'efforia',
-    'feedly',
-    'xadmin',
-    'south',
 ]
 
 LOGGING = {

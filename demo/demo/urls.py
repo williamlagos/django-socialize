@@ -1,14 +1,12 @@
-import xadmin
-xadmin.autodiscover()
+from django.contrib import admin
+admin.autodiscover()
 
 from django.conf.urls import patterns,url,include
 
-urlpatterns = patterns('efforia.views',    
+urlpatterns = patterns('demo.views',    
     (r'^$','efforia_main'),
-    (r'^admin/',include(xadmin.site.urls)),
+    (r'^admin/',include(admin.site.urls)),
     (r'^socialize/',include('socialize.urls')),
-    (r'^shipping/',include('shipping.urls')),
-    (r'^feedly/',include('feedly.urls')),
     (r'^spreadapp','init_spread'),
     (r'^products','store_main'),
     (r'^cancel','cancel'),

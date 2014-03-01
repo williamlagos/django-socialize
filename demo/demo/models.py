@@ -1,10 +1,7 @@
 from django.db.models import ForeignKey,TextField,CharField,IntegerField,DateTimeField,BooleanField,Model,FloatField
 from django.contrib.auth.models import User
-from feedly.models import Sellable
 from datetime import date
 import sys,os
-path = os.path.abspath("efforia")
-sys.path.append(path)
 
 locale = ('Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez')
 
@@ -56,10 +53,3 @@ class Image(Model):
         response = client.fetch(self.visual)
         url = '%s?dl=1' % response.effective_url
         return url
-
-class Product(Sellable):
-    category = IntegerField(default=1)
-    description = TextField()
-    def token(self): return self.name[:3]
-    def name_trimmed(self): return self.name.split(';')[0][2:]
-    def month(self): return locale[self.date.month-1]
