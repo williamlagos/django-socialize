@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'social_auth',
     'socialize',
+    'demo'
 ]
 
 LOGGING = {
