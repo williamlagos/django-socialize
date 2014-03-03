@@ -20,4 +20,4 @@ Quick start
 
 3. Run `python manage.py syncdb` to create the socialize models.
 
-5. Visit http://127.0.0.1:8000/ to view a sample with social authentications
+4. Visit http://127.0.0.1:8000/ to view a sample with social authentications
