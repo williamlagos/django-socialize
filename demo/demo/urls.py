@@ -1,6 +1,7 @@
 from django.conf.urls import patterns,url,include
 
 urlpatterns = patterns('demo.views',    
+    url('',include('social_auth.urls')),
     (r'^$','main'),
     (r'^socialize/',include('socialize.urls')),
     (r'^project','project_form'),
