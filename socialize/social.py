@@ -1,20 +1,20 @@
 #
-# This file is part of Efforia project.
+# This file is part of Efforia Open Source Initiative.
 #
-# Copyright (C) 2011-2013 William Oliveira de Lagos <william@efforia.com.br>
+# Copyright (C) 2011-2013 William Oliveira de Lagos <william@Socialize.com.br>
 #
-# Efforia is free software: you can redistribute it and/or modify
+# Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Efforia is distributed in the hope that it will be useful,
+# Socialize is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with Efforia. If not, see <http://www.gnu.org/licenses/>.
+# along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
@@ -28,14 +28,14 @@ from django.http import HttpResponseRedirect as redirect
 from django.shortcuts import render
 from django.db import IntegrityError
 from django.contrib.auth.models import AnonymousUser, User
-from tastypie.authentication import Authentication
-from provider.oauth2.models import AccessToken
+#from tastypie.authentication import Authentication
+#from provider.oauth2.models import AccessToken
 
 from models import *
 from forms import TutorialForm
-from main import Efforia
+from core import Socialize
 
-class Search(Efforia):
+class Search(Socialize):
     def __init__(self): pass
     def explore(self,request):
         try: query = request.GET['explore']
@@ -46,7 +46,7 @@ class Search(Efforia):
         filter(lambda obj: query.lower() in obj.name.lower(),objects)  
         return self.view_mosaic(request,objects) 
 
-class Follows(Efforia):
+class Follows(Socialize):
     def __init__(self): pass
     def view_following(self,request):
         u = self.current_user(request); rels = []
@@ -68,7 +68,7 @@ class Follows(Efforia):
         return response('Profile unfollowed successfully')
 
 
-class ID(Efforia):
+class ID(Socialize):
     def __init__(self): pass
     def view_id(self,request):
         u = self.current_user(request)
@@ -89,17 +89,17 @@ class ID(Efforia):
         p.save()
         return response('Tutorial finalizado.')        
 
-class Deletes(Efforia):
+class Deletes(Socialize):
     def delete_element(self,request):
         oid = request.GET['id']
-        modobj = settings.EFFORIA_TOKENS[request.GET['token']]
+        modobj = settings.Socialize_TOKENS[request.GET['token']]
         module,obj = modobj.split('.')
         o = self.class_module('%s.models'%module,obj)
         query = o.objects.filter(id=oid)
         if len(query): query[0].delete()
         return response('Object deleted successfully')
     
-class Tutorial(Efforia):
+class Tutorial(Socialize):
     def view_tutorial(self,request):
         social = False if 'social' not in request.GET else True
         form = TutorialForm()
@@ -126,7 +126,7 @@ class Tutorial(Efforia):
         if len(request.POST) is 0: return response('Added informations to profile successfully')#return redirect('/')
         else: return self.update_profile(request,'/',u)
     
-class Authentication(Efforia):
+class Authentication(Socialize):
     def social_update(self,request,typesoc,profile):
         data = request.REQUEST
         u = self.current_user(request)
@@ -210,12 +210,12 @@ class Authentication(Efforia):
         user = User(username=username,first_name=first_name,last_name=last_name)
         user.set_password(password)
         user.save()
-        r = redirect('/efforia/tutorial')
+        r = redirect('/Socialize/tutorial')
         r.set_cookie('username',username)
         r.set_cookie('permissions','super')
         return r
 
-class Twitter(Efforia):
+class Twitter(Socialize):
     def update_status(self,request):
         u = self.current_user(request)
         if len(request.GET['content']) > 137: 
@@ -227,7 +227,7 @@ class Twitter(Efforia):
         self.oauth_post_request('/statuses/update.json',tokens,data,'twitter')
         return response('Published posting successfully on Twitter')
 
-class Facebook(Efforia):
+class Facebook(Socialize):
     def update_status(self,request):
         u = self.current_user(request)
         token = u.profile.facebook_token
@@ -248,7 +248,7 @@ class Facebook(Efforia):
             elif 'location' in k: local = v.encode('utf-8')
             elif 'value' in k: value = v
         date = self.convert_datetime(dates)
-        url = 'http://%s/efforia/basket?alt=redir&id=%s&value=%s&token=@@'%(settings.EFFORIA_URL,value,name)
+        url = 'http://%s/Socialize/basket?alt=redir&id=%s&value=%s&token=@@'%(settings.Socialize_URL,value,name)
         data = {'name':name,'start_time':date,'description':descr,'location':local,'ticket_uri':url}
         id = json.loads(self.oauth_post_request("/me/events",token,data,'facebook'))['id']
         return response(id)
@@ -260,7 +260,7 @@ class Facebook(Efforia):
         self.oauth_post_request('/%s'%ident,token,{'cover_url':photo},'facebook')
         return response('Published image cover on event successfully on Facebook')
 
-class Coins(Efforia):
+class Coins(Socialize):
     def discharge(self,request):
         userid = request.REQUEST['userid']
         values = request.REQUEST['value']

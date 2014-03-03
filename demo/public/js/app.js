@@ -73,7 +73,7 @@ $.fn.doNothing = function(event){
 
 $.fn.logout = function(event){
 	event.preventDefault();
-	$.get('/efforia/leave',{},function(data){
+	$.get('/socialize/leave',{},function(data){
 		console.log(data);
 		window.location = '/';
 	});
@@ -82,7 +82,7 @@ $.fn.logout = function(event){
 $.fn.authenticate = function(event){
 	event.preventDefault();
 	$.ajax({
-		url:'/efforia/enter', 
+		url:'/socialize/enter', 
 		data:$('#login').serialize(),
 		beforeSend:function(){$('.login').button('loading');},
 		success:function(data){
