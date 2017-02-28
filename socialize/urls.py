@@ -17,27 +17,28 @@
 # along with Efforia. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.conf.urls import patterns,url,include
+from django.conf.urls import url,include
+from socialize.views import *
 
-urlpatterns = patterns('socialize.views',    
-    (r'^profile','profile'),
-    (r'^enter','authenticate'),
-    (r'^leave','leave'),
-    (r'^delete','delete'),
-    (r'^userid','ids'),
-    (r'^search','search'),
-    (r'^explore','search'),
-    (r'^known','explore'),
-    (r'^following','following'),
-    (r'^follow','follow'),
-    (r'^unfollow','unfollow'),
-    (r'^twitter/post','twitter_post'),
-    (r'^facebook/post','facebook_post'),
-    (r'^facebook/eventcover','facebook_eventcover'),
-    (r'^facebook/event','facebook_event'),
-    (r'^participate','participate'),
-    (r'^tutorial','tutorial'),
-    (r'^discharge','discharge'),
-    (r'^recharge','recharge'),
-    (r'^balance','balance'),
-)
+urlpatterns = [
+    url(r'^profile', profile),
+    url(r'^enter', authenticate),
+    url(r'^leave', leave),
+    url(r'^delete', delete),
+    url(r'^userid', ids),
+    url(r'^search', search),
+    url(r'^explore', search),
+    url(r'^known', explore),
+    url(r'^following', following),
+    url(r'^follow', follow),
+    url(r'^unfollow', unfollow),
+    url(r'^twitter/post', twitter_post),
+    url(r'^facebook/post', facebook_post),
+    url(r'^facebook/eventcover', facebook_eventcover),
+    url(r'^facebook/event', facebook_event),
+    url(r'^participate', participate),
+    url(r'^tutorial', tutorial),
+    url(r'^discharge', discharge),
+    url(r'^recharge', recharge),
+    url(r'^balance', balance),
+]
