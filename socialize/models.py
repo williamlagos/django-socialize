@@ -27,7 +27,7 @@ from datetime import date
 locale = settings.LOCALE_DATE
 
 class Profile(Model):
-    user = ForeignKey(User,related_name='+')
+    user = ForeignKey(User,related_name='+', on_delete=CASCADE)
     coins = IntegerField(default=0)
     visual = CharField(default="",max_length=100)
     career = CharField(default='',max_length=50)
