@@ -8,15 +8,16 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-socialize',
-    version='0.5.2',
+    version='0.5.3',
     packages=['socialize'],
     include_package_data=True,
     license='LGPLv3 License',
     description='A Django app to create social networks with social authentication.',
     long_description=README,
-    url='http://www.efforia.com.br/opensource/',
+    long_description_content_type='text/x-rst',
+    url='https://williamlagos.github.io/',
     author='William Oliveira de Lagos',
-    author_email='william@efforia.com.br',
+    author_email='william.lagos@icloud.com',
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',

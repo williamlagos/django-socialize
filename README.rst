@@ -1,6 +1,6 @@
-=====
+=========
 Socialize
-=====
+=========
 
 Socialize is a Django app to create social networks with social authentication.
 
