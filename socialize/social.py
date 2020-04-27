@@ -19,7 +19,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import json,urllib,urllib2,re,logging,oauth2 as oauth
+import json,urllib.request,urllib.parse,urllib.error,urllib.request,urllib.error,urllib.parse,re,logging,oauth2 as oauth
 from datetime import datetime
 from time import mktime,strptime
 
@@ -31,19 +31,19 @@ from django.contrib.auth.models import AnonymousUser, User
 #from tastypie.authentication import Authentication
 #from provider.oauth2.models import AccessToken
 
-from models import *
-from forms import TutorialForm
-from core import Socialize
+from .models import *
+from .forms import TutorialForm
+from .core import Socialize
 
 class Search(Socialize):
     def __init__(self): pass
     def explore(self,request):
         try: query = request.GET['explore']
-        except KeyError,e: query = ''
+        except KeyError as e: query = ''
         u = self.current_user(request)
         others = [x['id'] for x in Profile.objects.values('id')]
         objects = self.feed(u,others)
-        filter(lambda obj: query.lower() in obj.name.lower(),objects)  
+        [obj for obj in objects if query.lower() in obj.name.lower()]  
         return self.view_mosaic(request,objects) 
 
 class Follows(Socialize):
@@ -107,7 +107,7 @@ class Tutorial(Socialize):
     def update_profile(self,request,url,user):
         birthday = career = bio = ''
         p = user.profile
-        for k,v in request.POST.iteritems():
+        for k,v in request.POST.items():
             if 'birth' in k: p.birthday = self.convert_datetime(v)
             elif 'career' in k: p.career = v
             elif 'bio' in k: p.bio = v
@@ -198,7 +198,7 @@ class Authentication(Socialize):
     def participate(self,request):
         whitespace = ' '
         username = password = first_name = last_name = ''
-        for k,v in request.POST.iteritems():
+        for k,v in request.POST.items():
             if 'username' in k:
                 u = User.objects.filter(username=v)
                 if len(u) > 0: return response('Username already exists')
@@ -219,8 +219,8 @@ class Twitter(Socialize):
     def update_status(self,request):
         u = self.current_user(request)
         if len(request.GET['content']) > 137: 
-            short = unicode('%s...' % (request.GET['content'][:137]))
-        else: short = unicode('%s' % (request.GET['content']))
+            short = str('%s...' % (request.GET['content'][:137]))
+        else: short = str('%s' % (request.GET['content']))
         tokens = u.profile.twitter_token
         if not tokens: tokens = self.own_access()['twitter_token']
         data = {'status':short.encode('utf-8')}
@@ -231,7 +231,7 @@ class Facebook(Socialize):
     def update_status(self,request):
         u = self.current_user(request)
         token = u.profile.facebook_token
-        text = unicode('%s' % request.GET['content'])
+        text = str('%s' % request.GET['content'])
         data = {'message':text.encode('utf-8')}
         if 'id' in request.REQUEST: url = '/%s/feed' % request.REQUEST['id']
         else: url = '/me/feed'
@@ -241,7 +241,7 @@ class Facebook(Socialize):
         u = self.current_user(request)
         token = u.profile.facebook_token
         name = dates = descr = local = value = '' 
-        for k,v in request.REQUEST.iteritems():
+        for k,v in request.REQUEST.items():
             if 'name' in k: name = v.encode('utf-8')
             elif 'deadline' in k: dates = v
             elif 'description' in k: descr = v.encode('utf-8')
@@ -337,11 +337,11 @@ class OAuth20Authentication(Authentication):
             # If OAuth authentication is successful, set oauth_consumer_key on request in case we need it later
             request.META['oauth_consumer_key'] = key
             return True
-        except KeyError, e:
+        except KeyError as e:
             logging.exception("Error in OAuth20Authentication.")
             request.user = AnonymousUser()
             return False
-        except Exception, e:
+        except Exception as e:
             logging.exception("Error in OAuth20Authentication.")
             return False
         return True
@@ -354,7 +354,7 @@ def verify_access_token(key):
         # Check if token has expired
         if token.expires < timezone.now():
             raise OAuthError('AccessToken has expired.')
-    except AccessToken.DoesNotExist, e:
+    except AccessToken.DoesNotExist as e:
         raise OAuthError("AccessToken not found at all.")
 
     logging.info('Valid access')

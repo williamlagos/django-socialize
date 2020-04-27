@@ -18,7 +18,7 @@
 #
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from social import Search,Follows,ID,Deletes,Authentication,Twitter,Facebook,Tutorial,Coins
+from .social import Search,Follows,ID,Deletes,Authentication,Twitter,Facebook,Tutorial,Coins
 
 def discharge(request):
     c = Coins()

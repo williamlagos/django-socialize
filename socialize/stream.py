@@ -21,14 +21,14 @@
 
 
 import json
-from StringIO import StringIO
+from io import StringIO
 from xml.dom.minidom import parseString
 
 try:
     import gdata.youtube
     import gdata.media
     from dropbox import client, rest, session
-except ImportError,e:
+except ImportError as e:
     pass
 
 #apis = json.load(open('settings.json','r'))
@@ -81,14 +81,14 @@ class StreamService():
     
     def get_upload_token(self,video_entry,access_token):
         actoken = self.refresh_google_token(access_token)
-        print actoken
+        print(actoken)
         headers = {
                    'Authorization': 'OAuth %s' % actoken,
                    'X-gdata-key': 'key=%s' % self.developer_key,
                    'Content-type': 'application/atom+xml'
         }
         response = self.do_request('https://gdata.youtube.com/action/GetUploadToken',str(video_entry),headers)
-        print response
+        print(response)
         url = parseString(response).getElementsByTagName('url')[0].childNodes[0].data
         token = parseString(response).getElementsByTagName('token')[0].childNodes[0].data
         return url,token

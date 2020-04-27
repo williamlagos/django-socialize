@@ -39,24 +39,24 @@ class Socialize():
         j = json.loads(string,'utf-8')
         return ast.literal_eval(j)
     def url_request(self,url,data=None,headers={}):
-        request = urllib2.Request(url=url,data=data,headers=headers)
-        request_open = urllib2.urlopen(request)
+        request = urllib.request.Request(url=url,data=data,headers=headers)
+        request_open = urllib.request.urlopen(request)
         return request_open.geturl()
     def do_request(self,url,data=None,headers={}):
         response = ''
-        request = urllib2.Request(url=url,data=data,headers=headers)
+        request = urllib.request.Request(url=url,data=data,headers=headers)
         try:
-            request_open = urllib2.urlopen(request)
+            request_open = urllib.request.urlopen(request)
             response = request_open.read()
             request_open.close()
-        except urllib2.HTTPError,e:
-            print url
-            print data
-            print headers
-            print e.code
-            print e.msg
-            print e.hdrs
-            print e.fp
+        except urllib.error.HTTPError as e:
+            print(url)
+            print(data)
+            print(headers)
+            print(e.code)
+            print(e.msg)
+            print(e.hdrs)
+            print(e.fp)
         return response
     def object_token(self,token):
         relations = settings.EFFORIA_TOKENS
