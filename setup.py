@@ -8,7 +8,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-socialize',
-    version='0.5.3',
+    version='0.5.4',
     packages=['socialize'],
     include_package_data=True,
     license='LGPLv3 License',
