@@ -1,2 +1,2 @@
-django==1.6.1
+django==1.11.29
 django-social-auth==0.7.28
