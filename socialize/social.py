@@ -1,7 +1,8 @@
+#!/usr/bin/python
 #
-# This file is part of Efforia Open Source Initiative.
+# This file is part of django-socialize project.
 #
-# Copyright (C) 2011-2013 William Oliveira de Lagos <william@Socialize.com.br>
+# Copyright (C) 2011-2020 William Oliveira de Lagos <william.lagos@icloud.com>
 #
 # Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
@@ -16,18 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 import json,urllib.request,urllib.parse,urllib.error,urllib.request,urllib.error,urllib.parse,re,logging,oauth2 as oauth
+
 from datetime import datetime
 from time import mktime,strptime
-
 from django.http import HttpResponse as response
 from django.http import HttpResponseRedirect as redirect
 from django.shortcuts import render
 from django.db import IntegrityError
 from django.contrib.auth.models import AnonymousUser, User
+
 #from tastypie.authentication import Authentication
 #from provider.oauth2.models import AccessToken
 
