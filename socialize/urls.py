@@ -19,10 +19,12 @@
 #
 
 from django.conf.urls import url,include
+from django.urls import path
 
 from .views import *
 
 urlpatterns = [
+    path('profiles/', SocialView.as_view()),
     url(r'^profile', profile),
     url(r'^enter', authenticate),
     url(r'^leave', leave),

@@ -18,7 +18,14 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
+from django.http import JsonResponse
+from django.views import View
+
 from .social import Search,Follows,ID,Deletes,Authentication,Twitter,Facebook,Tutorial,Coins
+
+class SocialView(View):
+    def get(self, request):
+        return JsonResponse({'social': 'success'})
 
 def discharge(request):
     c = Coins()
