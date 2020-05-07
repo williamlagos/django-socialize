@@ -23,12 +23,12 @@ from django.urls import path
 
 from .views import *
 
-profiles_patterns = ([
-    path('', ProfilesView.as_view()),
-], 'profiles')
+accounts_patterns = ([
+    path('', AccountsView.as_view()),
+], 'accounts')
 
 urlpatterns = [
-    path('profiles', include(profiles_patterns)),
+    path('accounts', include(accounts_patterns)),
     url(r'^profile', profile),
     url(r'^enter', authenticate),
     url(r'^leave', leave),

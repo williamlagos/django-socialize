@@ -23,9 +23,9 @@ from django.views import View
 
 from .social import Search,Follows,ID,Deletes,Authentication,Twitter,Facebook,Tutorial,Coins
 
-class ProfilesView(View):
+class AccountsView(View):
     def get(self, request):
-        return JsonResponse({'profiles': 'success'})
+        return JsonResponse({'accounts': 'success'})
 
 def discharge(request):
     c = Coins()
