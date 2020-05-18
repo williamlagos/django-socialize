@@ -42,35 +42,6 @@ class Profile(Model):
     def token(self): return ''
     def get_username(self): return self.user.username
     def month(self): return locale[self.date.month-1]
-    def render(self):
-        source = """
-            <div class="col-xs-12 col-sm-6 col-md-3 col-lg-2 brick">
-                <a class="block profile" href="#" style="display:block; background:black">
-                <div class="box profile">
-                <div class="content">
-                <h2 class="name">{{ firstname }}</h2>
-                <div class="centered">{{ career }}</div>
-                </div>
-                {% if visual %}
-                    <img src="{{ visual }}" width="100%"/>
-                {% else %}
-                    <h1 class="centered"><span class="glyphicon glyphicon-user big-glyphicon"></span></h1>
-                {% endif %}
-                <div class="content centered">
-                {{ bio }}
-                <div class="id hidden">{{ id }}</div></div></div>
-                <div class="date"> Entrou em {{ day }} de {{month}}</div>
-            </a></div>
-        """
-        return Template(source).render(Context({
-            'firstname': self.user.first_name,
-            'career':    self.career,
-            'id':        self.id,
-            'visual':    self.visual,
-            'bio':       self.bio,
-            'day':       self.date.day,
-            'month':     self.month
-        }))
 
 class Followed(Model):
     followed = IntegerField(default=1)
