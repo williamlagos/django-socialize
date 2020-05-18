@@ -35,7 +35,8 @@ from django.conf import settings
 from django.shortcuts import render
 
 class Authentication(Socialize):
-    def social_update(self,request,typesoc,profile):
+
+    def social_update(self, request, typesoc, profile):
         data = request.REQUEST
         u = self.current_user(request)
         p = Profile.objects.filter(user=u)[0]
@@ -44,7 +45,8 @@ class Authentication(Socialize):
         elif 'facebook' in typesoc: p.facebook_token = profile['facebook_token']
         p.save()       
         return redirect('/')
-    def social_register(self,request,typesoc,profile):
+
+    def social_register(self, request, typesoc, profile):
         data = request.REQUEST
         whitespace = ' '; r = None;
         facebook = twitter = google = ''
@@ -70,7 +72,8 @@ class Authentication(Socialize):
             r.set_cookie('username',username)
         r.set_cookie('permissions','super')
         return r
-    def authenticate(self,request):
+
+    def authenticate(self, request):
         data = request.REQUEST
         if 'profile' in data:
             profile = self.json_decode(data['profile']); t = data['social']
@@ -98,12 +101,15 @@ class Authentication(Socialize):
             else:
                 obj = json.dumps({'error':'User does not exist'})
                 return response(obj,mimetype='application/json')
-    def leave(self,request):
+
+    def leave(self, request):
         del request.session['user']
         return response(json.dumps({'success':'Logout successful'}),mimetype='application/json')
-    def view_register(self,request):
+
+    def view_register(self, request):
         return render(request,'register.html',{'static_url':settings.STATIC_URL,'hostname':request.get_host()},content_type='text/html')
-    def participate(self,request):
+
+    def participate(self, request):
         whitespace = ' '
         username = password = first_name = last_name = ''
         for k,v in request.POST.items():
@@ -125,9 +131,9 @@ class Authentication(Socialize):
 
 class OAuthError(RuntimeError):
     """Generic exception class."""
+
     def __init__(self, message='OAuth error occured.'):
         self.message = message
-
 
 class OAuth20Authentication(Authentication):
     """
@@ -136,6 +142,7 @@ class OAuth20Authentication(Authentication):
     This Authentication method checks for a provided HTTP_AUTHORIZATION
     and looks up to see if this is a valid OAuth Access Token
     """
+    
     def __init__(self, realm='API'):
         self.realm = realm
 

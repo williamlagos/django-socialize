@@ -34,8 +34,9 @@ from django.contrib.auth.models import AnonymousUser, User
 from django.conf import settings
 from django.shortcuts import render
 
-class Twitter(Socialize):
-    def update_status(self,request):
+class TwitterSocialProvider:
+
+    def update_status(self, request):
         u = self.current_user(request)
         if len(request.GET['content']) > 137: 
             short = str('%s...' % (request.GET['content'][:137]))

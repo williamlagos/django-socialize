@@ -32,19 +32,23 @@ except ImportError as e:
 #google_api = apis['social']['google']
 google_api = ('','')
 
-class StreamService():
+class GoogleSocialProvider:
+
     def __init__(self):
         self.developer_key = "AI39si7wyQ0h6KhpWLhZfJa-U4mU65rO3Dj-05grmYkZk-kn_sv8br5UdDIEORwG-itcRn5wSBTFbgu02KyR_FhSQNaR0QbvSQ"
         self.client_id = google_api['client_id']
-    def videos_by_user(self,username):
+
+    def videos_by_user(self, username):
         uri = 'https://gdata.youtube.com/feeds/api/users/%s/uploads?alt=json' % username
         return self.do_request(uri)
-    def video_thumbnail(self,token,access_token):
+
+    def video_thumbnail(self, token, access_token):
         actoken = self.refresh_google_token(access_token)
         uri = 'https://gdata.youtube.com/feeds/api/users/default/uploads/%s?access_token=%s' % (token,actoken)
         thumbnail = parseString(self.do_request(uri)).getElementsByTagName('media:thumbnail')[0].attributes['url'].value
         return str(thumbnail)
-    def video_entry(self,title,description,keywords,access_token):
+
+    def video_entry(self, title, description, keywords, access_token):
         media_group = gdata.media.Group(title=gdata.media.Title(text=title),
                                         description=gdata.media.Description(description_type='plain',text=description),
                                         keywords=gdata.media.Keywords(text='efforia'),
@@ -57,7 +61,7 @@ class StreamService():
         url,token = self.get_upload_token(video_entry,access_token)
         return url,token
     
-    def get_upload_token(self,video_entry,access_token):
+    def get_upload_token(self, video_entry, access_token):
         actoken = self.refresh_google_token(access_token)
         print(actoken)
         headers = {
@@ -71,5 +75,5 @@ class StreamService():
         token = parseString(response).getElementsByTagName('token')[0].childNodes[0].data
         return url,token
         
-    def search_video(self,search_terms):
+    def search_video(self, search_terms):
         pass

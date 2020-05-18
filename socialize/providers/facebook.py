@@ -34,8 +34,9 @@ from django.contrib.auth.models import AnonymousUser, User
 from django.conf import settings
 from django.shortcuts import render
 
-class Facebook(Socialize):
-    def update_status(self,request):
+class FacebookSocialProvider:
+
+    def update_status(self, request):
         u = self.current_user(request)
         token = u.profile.facebook_token
         text = str('%s' % request.GET['content'])
@@ -44,7 +45,8 @@ class Facebook(Socialize):
         else: url = '/me/feed'
         self.oauth_post_request(url,token,data,'facebook')
         return response('Published posting successfully on Facebook')
-    def send_event(self,request):
+
+    def send_event(self, request):
         u = self.current_user(request)
         token = u.profile.facebook_token
         name = dates = descr = local = value = '' 
@@ -59,7 +61,8 @@ class Facebook(Socialize):
         data = {'name':name,'start_time':date,'description':descr,'location':local,'ticket_uri':url}
         id = json.loads(self.oauth_post_request("/me/events",token,data,'facebook'))['id']
         return response(id)
-    def send_event_cover(self,request):
+
+    def send_event_cover(self, request):
         u = self.current_user(request)
         token = u.profile.facebook_token
         ident = request.REQUEST['id']
