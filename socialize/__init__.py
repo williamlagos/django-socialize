@@ -17,3 +17,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
+
+# default_app_config = 'socialize.apps.DefaultConfig'
+default_app_config = 'socialize.socialize.apps.DefaultConfig'
