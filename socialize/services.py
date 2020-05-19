@@ -28,6 +28,7 @@ from time import mktime,strptime
 
 from django.http import HttpResponse as response
 from django.http import HttpResponseRedirect as redirect
+from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.db import IntegrityError
 from django.contrib.auth.models import AnonymousUser, User
@@ -40,15 +41,40 @@ from django.shortcuts import render
 
 from .models import *
 from .forms import TutorialForm
-from .core import Socialize
 
 def user(name): return User.objects.filter(username=name)[0]
 def superuser(): return User.objects.filter(is_superuser=True)[0]
 
 class SocialService:
 
+    model = Profile
+
     def __init__(self): 
         pass
+
+    # GET /
+    def list(self):
+        return self.model.objects.all()
+
+    # GET /<pk>/
+    def detail(self, pk):
+        return self.model.objects.get(id=pk)
+
+    # POST /
+    def create(self, data):
+        return self.model.objects.create(**data)
+
+    # PUT /<pk>/
+    def update(self, pk, data):
+        try:
+            model = self.model.objects.filter(id=pk).update(**data)
+        except self.model.DoesNotExist:
+            model = self.model.objects.create(**data)
+        return model
+
+    # DELETE /<pk>/
+    def delete(self, pk):
+        self.objects.filter(id=pk).delete()
 
     def verify_permissions(self, request):
         perm = 'super'
