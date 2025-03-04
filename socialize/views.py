@@ -20,8 +20,12 @@
 
 from django.http import JsonResponse
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from .services import *
+from .activitypub import ActivityPubHandler
+
 
 class AccountsView(View):
 
@@ -123,12 +127,12 @@ class AccountsView(View):
         f = Facebook()
         if request.method == 'GET':
             return f.send_event(request)
-        
+
     def facebook_eventcover(self, request):
         f = Facebook()
         if request.method == 'GET':
             return f.send_event_cover(request)
-        
+
     def participate(self, request):
         a = Authentication()
         if request.method == 'GET':
@@ -172,3 +176,17 @@ class AccountsView(View):
             'day':       self.date.day,
             'month':     self.month
         }))
+
+
+class ActivityPubView(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        handler = ActivityPubHandler()
+        return handler.handle_get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        handler = ActivityPubHandler()
+        return handler.handle_post(request, *args, **kwargs)
