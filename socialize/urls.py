@@ -18,13 +18,14 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.conf.urls import url,include
+from django.conf.urls import url, include
 from django.urls import path
 
 from .views import *
 
 urlpatterns = [
     path('', AccountsView.as_view()),
+    path('activitypub/', ActivityPubView.as_view(), name='activitypub'),
     # url(r'^profile', profile),
     # url(r'^enter', authenticate),
     # url(r'^leave', leave),

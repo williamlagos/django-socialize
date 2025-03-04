@@ -22,7 +22,7 @@ from datetime import date
 from django.db.models import *
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.template import Context,Template
+from django.template import Context, Template
 from django.utils.timezone import now
 
 locale = settings.LOCALE_DATE
@@ -31,26 +31,45 @@ locale = settings.LOCALE_DATE
 def user(name): return User.objects.filter(username=name)[0]
 def superuser(): return User.objects.filter(is_superuser=True)[0]
 
+
 class Profile(Model):
-    user = ForeignKey(User,related_name='+', on_delete=CASCADE)
+    user = ForeignKey(User, related_name='+', on_delete=CASCADE)
     coins = IntegerField(default=0)
-    visual = CharField(default="",max_length=100)
-    career = CharField(default='',max_length=50)
+    visual = CharField(default="", max_length=100)
+    career = CharField(default='', max_length=50)
     birthday = DateTimeField(default=now)
-    google_token = TextField(default="",max_length=120)
-    twitter_token = TextField(default="",max_length=120)
-    facebook_token = TextField(default="",max_length=120)
-    bio = TextField(default='',max_length=140)
+    google_token = TextField(default="", max_length=120)
+    twitter_token = TextField(default="", max_length=120)
+    facebook_token = TextField(default="", max_length=120)
+    bio = TextField(default='', max_length=140)
     date = DateTimeField(auto_now_add=True)
-    def years_old(self): return datetime.timedelta(self.birthday,date.today)
+    def years_old(self): return datetime.timedelta(self.birthday, date.today)
     def token(self): return ''
     def get_username(self): return self.user.username
     def month(self): return locale[self.date.month-1]
+
 
 class Followed(Model):
     followed = IntegerField(default=1)
     follower = IntegerField(default=2)
     date = DateTimeField(auto_now_add=True)
+
+
+class ActivityPubObject(Model):
+    id = CharField(max_length=255, primary_key=True)
+    type = CharField(max_length=50)
+    content = TextField()
+    published = DateTimeField(auto_now_add=True)
+    actor = ForeignKey(User, on_delete=CASCADE)
+
+
+class ActivityPubActivity(Model):
+    id = CharField(max_length=255, primary_key=True)
+    type = CharField(max_length=50)
+    actor = ForeignKey(User, on_delete=CASCADE)
+    object = ForeignKey(ActivityPubObject, on_delete=CASCADE)
+    published = DateTimeField(auto_now_add=True)
+
 
 Profile.year = property(lambda p: p.years_old())
 Profile.name = property(lambda p: p.get_username())
