@@ -2,7 +2,7 @@
 #
 # This file is part of django-socialize project.
 #
-# Copyright (C) 2011-2020 William Oliveira de Lagos <william.lagos@icloud.com>
+# Copyright (C) 2010-2025 William Oliveira de Lagos <william.lagos@icloud.com>
 #
 # Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
@@ -18,59 +18,79 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from datetime import date
-from django.db.models import *
-from django.conf import settings
+import datetime
+import uuid
+
+from django.db import models
 from django.contrib.auth.models import User
-from django.template import Context, Template
 from django.utils.timezone import now
 
-locale = settings.LOCALE_DATE
+
+class Actor(models.Model):
+    """Represents an actor in the social network. (e.g. Person, Group)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=100, unique=True)
+    display_name = models.CharField(max_length=255, blank=True, null=True)
+    inbox = models.URLField(blank=True, null=True)
+    outbox = models.URLField(blank=True, null=True)
+    actor_type = models.CharField(max_length=50, default='Person')
+
+    joined_at = models.DateTimeField(auto_now_add=True)
+    bio = models.TextField(default='', max_length=140)
+    title = models.CharField(default='', max_length=50)
+    birthdate = models.DateTimeField(default=now)
+
+    def years_old(self):
+        """Returns the age of the actor."""
+        return datetime.timedelta(self.birthdate, datetime.date.today)
 
 
-def user(name): return User.objects.filter(username=name)[0]
-def superuser(): return User.objects.filter(is_superuser=True)[0]
+class Activity(models.Model):
+    """Represents an activity in the social network. (e.g. Post, Like, Follow)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Create, Update, Delete, Follow, Like, Block, Undo
+    activity_type = models.CharField(max_length=50)
+    actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
+    object_data = models.JSONField()  # Stores activity object data as JSON.
+    published_at = models.DateTimeField(auto_now_add=True)
 
 
-class Profile(Model):
-    user = ForeignKey(User, related_name='+', on_delete=CASCADE)
-    coins = IntegerField(default=0)
-    visual = CharField(default="", max_length=100)
-    career = CharField(default='', max_length=50)
-    birthday = DateTimeField(default=now)
-    google_token = TextField(default="", max_length=120)
-    twitter_token = TextField(default="", max_length=120)
-    facebook_token = TextField(default="", max_length=120)
-    bio = TextField(default='', max_length=140)
-    date = DateTimeField(auto_now_add=True)
-    def years_old(self): return datetime.timedelta(self.birthday, date.today)
-    def token(self): return ''
-    def get_username(self): return self.user.username
-    def month(self): return locale[self.date.month-1]
+class Object(models.Model):
+    """Represents an object in the social network. (e.g. Post, Image, Video)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    object_type = models.CharField(max_length=50, default='Note')
+    content = models.TextField()
+    actor = models.ForeignKey(User, on_delete=models.CASCADE)
+    published_at = models.DateTimeField(auto_now_add=True)
 
 
-class Followed(Model):
-    followed = IntegerField(default=1)
-    follower = IntegerField(default=2)
-    date = DateTimeField(auto_now_add=True)
+class Vault(models.Model):
+    """Represents an actor vault with its access keys in the social network. (e.g. Password, Tokens)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
+    access_key = models.CharField(max_length=255)
+    secret_key = models.CharField(max_length=255)
+    # TODO: Add any e-commerce related fields to another package.
+    # coins = IntegerField(default=0)
+
+    # TODO: Consider moving these sensitive fields and functions to another model/table.
+    # google_token = models.TextField(default="", max_length=120)
+    # twitter_token = models.TextField(default="", max_length=120)
+    # facebook_token = models.TextField(default="", max_length=120)
+    # def token(self):
+    #     return self.google_token or self.twitter_token or self.facebook_token
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
-class ActivityPubObject(Model):
-    id = CharField(max_length=255, primary_key=True)
-    type = CharField(max_length=50)
-    content = TextField()
-    published = DateTimeField(auto_now_add=True)
-    actor = ForeignKey(User, on_delete=CASCADE)
+def user(name):
+    """Returns the user with the given username."""
+    return User.objects.filter(username=name)[0]
 
 
-class ActivityPubActivity(Model):
-    id = CharField(max_length=255, primary_key=True)
-    type = CharField(max_length=50)
-    actor = ForeignKey(User, on_delete=CASCADE)
-    object = ForeignKey(ActivityPubObject, on_delete=CASCADE)
-    published = DateTimeField(auto_now_add=True)
+def superuser():
+    """Returns the first superuser in the database."""
+    return User.objects.filter(is_superuser=True)[0]
 
 
-Profile.year = property(lambda p: p.years_old())
-Profile.name = property(lambda p: p.get_username())
-User.profile = property(lambda u: Profile.objects.get_or_create(user=u)[0])
+Actor.year = property(lambda p: p.years_old())
+Actor.name = property(lambda p: p.get_username())

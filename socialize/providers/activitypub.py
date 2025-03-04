@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from .models import ActivityPubObject, ActivityPubActivity
+# from .models import ActivityPubObject, ActivityPubActivity
 
 
 class ActivityPubHandler:
