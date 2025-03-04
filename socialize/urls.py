@@ -2,7 +2,7 @@
 #
 # This file is part of django-socialize project.
 #
-# Copyright (C) 2011-2020 William Oliveira de Lagos <william.lagos@icloud.com>
+# Copyright (C) 2010-2025 William Oliveira de Lagos <william.lagos@icloud.com>
 #
 # Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
@@ -18,32 +18,10 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.conf.urls import url, include
-from django.urls import path
-
-from .views import *
+from .views import ActorService, ActivityService, ObjectService
 
 urlpatterns = [
-    path('', AccountsView.as_view()),
-    path('activitypub/', ActivityPubView.as_view(), name='activitypub'),
-    # url(r'^profile', profile),
-    # url(r'^enter', authenticate),
-    # url(r'^leave', leave),
-    # url(r'^delete', delete),
-    # url(r'^userid', ids),
-    # url(r'^search', search),
-    # url(r'^explore', search),
-    # url(r'^known', explore),
-    # url(r'^following', following),
-    # url(r'^follow', follow),
-    # url(r'^unfollow', unfollow),
-    # url(r'^twitter/post', twitter_post),
-    # url(r'^facebook/post', facebook_post),
-    # url(r'^facebook/eventcover', facebook_eventcover),
-    # url(r'^facebook/event', facebook_event),
-    # url(r'^participate', participate),
-    # url(r'^tutorial', tutorial),
-    # url(r'^discharge', discharge),
-    # url(r'^recharge', recharge),
-    # url(r'^balance', balance),
+    ActorService.get_urlpatterns() +
+    ActivityService.get_urlpatterns() +
+    ObjectService.get_urlpatterns()
 ]
