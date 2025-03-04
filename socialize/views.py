@@ -1,8 +1,10 @@
+"""Views for the socialize app."""
 #!/usr/bin/python
+# pylint: disable=E1101
 #
 # This file is part of django-socialize project.
 #
-# Copyright (C) 2011-2020 William Oliveira de Lagos <william.lagos@icloud.com>
+# Copyright (C) 2010-2025 William Oliveira de Lagos <william.lagos@icloud.com>
 #
 # Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
@@ -18,136 +20,312 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.http import JsonResponse
+import json
+import urllib
+import ast
+import time
+
+from datetime import datetime
+
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
+from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponse
 from django.utils.decorators import method_decorator
+from django.shortcuts import get_object_or_404, render
+from django.conf import settings
+from django.urls import path
 
-from .services import *
-from .activitypub import ActivityPubHandler
+from .models import Actor, Activity, Object
+from .forms import TutorialForm
 
 
-class AccountsView(View):
+class ActorService(View):
+    """Handles ActivityPub Actor endpoints."""
 
-    def get(self, request):
-        return JsonResponse({'accounts': 'success'})
+    def get(self, request, *_, **kwargs):
+        """Handles GET requests for actor-related actions."""
+        route = kwargs.get('route')
 
-    def discharge(self, request):
-        c = Coins()
-        if request.method == 'GET':
-            c.discharge(request)
+        if route == 'actor':
+            return self.get_actor(request, kwargs.get('username'))
+        elif route == 'webfinger':
+            return self.get_webfinger(request)
 
-    def recharge(self, request):
-        c = Coins()
-        if request.method == 'GET':
-            c.recharge(request)
+        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
 
-    def balance(self, request):
-        c = Coins()
-        if request.method == 'GET':
-            c.balance(request)
+    def get_actor(self, _, username):
+        """Returns the ActivityPub representation of an Actor for the given username."""
+        actor = get_object_or_404(Actor, username=username)
+        return JsonResponse(actor.as_activitypub())
 
-    def payment(self, request):
-        pay = Coins()
-        if request.method == 'GET':
-            return pay.view_recharge(request)
-        elif request.method == 'POST':
-            return pay.update_credit(request)
+    def get_webfinger(self, request):
+        """Returns the WebFinger data request for the user discovery."""
+        resource = request.GET.get('resource')
+        if resource.startswith('acct:'):
+            username = resource.split('acct:')[1].split('@')[0]
+            actor = get_object_or_404(Actor, username=username)
 
-    def search(self, request):
-        s = Search()
-        if request.method == 'GET':
-            return s.explore(request)
+            return JsonResponse({
+                'subject': f'acct:{actor.username}@{settings.SITE_DOMAIN}',
+                'links': [{
+                    'rel': 'self',
+                    'type': 'application/activity+json',
+                    'href': actor.get_actor_url()
+                }]
+            })
+
+        return JsonResponse({'error': 'Invalid WebFinger request'}, status=400)
+
+    @staticmethod
+    def get_urlpatterns():
+        """Returns the URL patterns for the ActorService."""
+        return [
+            path('users/<str:username>/', ActorService.as_view(),
+                 {'route': 'actor'}, name='actor'),
+            path('.well-known/webfinger', ActorService.as_view(),
+                 {'route': 'webfinger'}, name='webfinger'),
+        ]
+
+    # TODO: Consider merging the logic in the old profiles class code methods below into the ActorService class.
+    def accumulate_points(self, points, request=None):
+        if request is None:
+            u = self.current_user()
+        else:
+            u = self.current_user(request)
+        current_profile = Profile.objects.all().filter(user=u)[0]
+        current_profile.points += points
+        current_profile.save()
+
+    def update_profile(self, request, url, user):
+        birthday = career = bio = ''
+        p = user.profile
+        for k, v in request.POST.items():
+            if 'birth' in k:
+                p.birthday = self.convert_datetime(v)
+            elif 'career' in k:
+                p.career = v
+            elif 'bio' in k:
+                p.bio = v
+        p.save()
+        return HttpResponse('Added informations to profile successfully')
+
+
+class ActivityService(View):
+    """Handles ActivityPub Activity endpoints for inbox and outbox."""
+
+    def get(self, request, *_, **kwargs):
+        """Handles GET requests for activity-related actions."""
+        route = kwargs.get('route')
+
+        if route == 'outbox':
+            return self.get_outbox(request, kwargs.get('username'))
+
+        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+
+    @method_decorator(csrf_exempt)
+    def post(self, request, *_, **kwargs):
+        """Handles POST requests for activity-related actions on inbox."""
+        route = kwargs.get('route')
+
+        if route == 'inbox':
+            return self.post_inbox(request, kwargs.get('username'))
+
+        return HttpResponseNotAllowed(['POST'])
+
+    def post_inbox(self, request, username):
+        """Handles ActivityPub inbox messages."""
+        try:
+            data = json.loads(request.body)
+            actor = get_object_or_404(Actor, username=username)
+            Activity.objects.create(
+                actor=actor,
+                object_data=data,
+                activity_type=data.get('type'),
+            )
+            return JsonResponse({'status': 'accepted'}, status=202)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+    def get_outbox(self, _, username):
+        """Returns the ActivityPub representation of an Actor's outbox."""
+        actor = get_object_or_404(Actor, username=username)
+        activities = Activity.objects.filter(
+            actor=actor).order_by('-published_at')
+
+        return JsonResponse({
+            '@context': 'https://www.w3.org/ns/activitystreams',
+            'id': actor.outbox,
+            'type': 'OrderedCollection',
+            'totalItems': activities.count(),
+            'orderedItems': [activity.object_data for activity in activities]
+        })
+
+    @staticmethod
+    def get_urlpatterns():
+        """Returns the URL patterns for the ActivityService."""
+        return [
+            path('users/<str:username>/outbox/', ActivityService.as_view(),
+                 {'route': 'outbox'}, name='outbox'),
+            path('users/<str:username>/inbox/', ActivityService.as_view(),
+                 {'route': 'inbox'}, name='inbox'),
+        ]
+
+    # TODO: Consider merging the logic in the following class code methods below into the ActivityService class.
+    def view_following(self, request):
+        u = self.current_user(request)
+        rels = []
+        for f in Followed.objects.filter(follower=u.id):
+            rels.append(Profile.objects.filter(user_id=f.followed)[0])
+        request.COOKIES['permissions'] = 'view_only'
+        return self.view_mosaic(request, rels)
+
+    def become_follower(self, request):
+        u = self.current_user(request).id
+        followed = Profile.objects.filter(
+            id=request.GET['profile_id'])[0].user_id
+        follow = Followed(followed=followed, follower=u)
+        follow.save()
+        return HttpResponse('Profile followed successfully')
+
+    def leave_follower(self, request):
+        u = self.current_user(request).id
+        followed = request.GET['profile_id']
+        query = Followed.objects.filter(followed=followed, follower=u)
+        if len(query):
+            query[0].delete()
+        return HttpResponse('Profile unfollowed successfully')
+
+
+class ObjectService(View):
+    """Handles ActivityPub Object endpoints."""
+
+    def get(self, request, *_, **kwargs):
+        """Handles GET requests for object-related actions."""
+        route = kwargs.get('route')
+
+        if route == 'object':
+            return self.get_object(request, kwargs.get('object_id'))
+
+        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+
+    def get_object(self, _, object_id):
+        """Returns the ActivityPub representation of an Object for the given ID."""
+        obj = get_object_or_404(Object, id=object_id)
+        return JsonResponse(obj.as_activitypub())
+
+    @staticmethod
+    def get_urlpatterns():
+        """Returns the URL patterns for the ObjectService."""
+        return [
+            path('objects/<uuid:object_id>/', ObjectService.as_view(),
+                 {'route': 'object'}, name='object'),
+        ]
+
+    # TODO: Consider mergint the logic in the Search and Delete class code methods below with the ObjectService class.
+    def delete_element(self, request):
+        oid = request.GET['id']
+        modobj = settings.Socialize_TOKENS[request.GET['token']]
+        module, obj = modobj.split('.')
+        o = self.class_module('%s.models' % module, obj)
+        query = o.objects.filter(id=oid)
+        if len(query):
+            query[0].delete()
+        return HttpResponse('Object deleted successfully')
 
     def explore(self, request):
-        p = Profiles()
-        if request.method == 'GET':
-            return p.view_userinfo(request)
+        try:
+            query = request.GET['explore']
+        except KeyError as e:
+            query = ''
+        u = self.current_user(request)
+        others = [x['id'] for x in Profile.objects.values('id')]
+        objects = self.feed(u, others)
+        [obj for obj in objects if query.lower() in obj.name.lower()]
+        return self.view_mosaic(request, objects)
 
-    def activity(self, request):
-        p = Profiles()
-        if request.method == 'GET':
-            return p.view_activity(request)
 
-    def following(self, request):
-        fav = Follows()
-        if request.method == 'GET':
-            return fav.view_following(request)
+class VaultService(View):
+    """Handles Vault endpoints."""
 
-    def follow(self, request):
-        f = Follows()
-        if request.method == 'GET':
-            return f.become_follower(request)
+    # TODO: Consider revamping these authentication methods into a new VaultService class
+    def object_token(self, token):
+        relations = settings.EFFORIA_TOKENS
+        typobject = relations[token]
+        return typobject
 
-    def unfollow(self, request):
-        f = Follows()
-        if request.method == 'GET':
-            return f.leave_follower(request)
+    def object_byid(self, token, ident):
+        obj = self.object_token(token)
+        return globals()[obj].objects.filter(id=ident)[0]
 
-    def ids(self, request):
-        i = ID()
-        if request.method == 'GET':
-            return i.view_id(request)
-        elif request.method == 'POST':
-            return i.finish_tutorial(request)
+    def authenticate(self, username, password):
+        exists = User.objects.filter(username=username)
+        if exists:
+            if exists[0].check_password(password):
+                return exists
+        else:
+            return None
 
-    def delete(self, request):
-        d = Deletes()
-        if request.method == 'GET':
-            return d.delete_element(request)
+    def authenticated(self):
+        name = self.get_current_user()
+        if not name:
+            # self.redirect('login')
+            self.render('templates/enter.html', STATIC_URL=settings.STATIC_URL)
+            return False
+        else:
+            return True
 
-    def profile(self, request):
-        prof = Profiles()
-        if request.method == 'GET':
-            return prof.view_profile(request)
-        elif request.method == 'POST':
-            return prof.update_profile(request)
+    def view_id(self, request):
+        u = self.current_user(request)
+        if 'first_turn' in request.GET:
+            if u.profile.first_turn:
+                return HttpResponse('yes')
+            else:
+                return HttpResponse('no')
+        elif 'object' in request.GET:
+            o, t = request.GET['object'][0].split(';')
+            now, objs, rels = self.get_object_bydate(o, t)
+            obj = globals()[objs].objects.all().filter(date=now)[0]
+            if hasattr(obj, 'user'):
+                return HttpResponse(str(obj.user.id))
+            else:
+                return HttpResponse(str(self.current_user().id))
+        else:
+            return HttpResponse(str(self.current_user().id))
 
-    def authenticate(self, request):
-        a = Authentication()
-        if request.method == 'GET':
-            return a.authenticate(request)
+    def is_tutorial_finished(self, request):
+        u = self.current_user(request)
+        p = Profile.objects.all().filter(user=u)[0]
+        p.first_time = False
+        p.save()
+        return HttpResponse('Tutorial finalizado.')
 
-    def leave(self, request):
-        a = Authentication()
-        if request.method == 'GET':
-            return a.leave(request)
+    def view_tutorial(self, request):
+        social = False if 'social' not in request.GET else True
+        form = TutorialForm()
+        return render(request, 'tutorial.html', {
+            'form': form,
+            'static_url': settings.STATIC_URL,
+            'social': social
+        })
 
-    def twitter_post(self, request):
-        t = Twitter()
-        if request.method == 'GET':
-            return t.update_status(request)
+    def finish_tutorial(self, request):
+        whitespace = ' '
+        data = request.POST
+        name = request.COOKIES['username']
+        u = User.objects.filter(username=name)[0]
+        if 'name' in data:
+            lname = data['name'].split()
+            u.first_name, u.last_name = lname[0], whitespace.join(lname[1:])
+        u.save()
+        request.session['user'] = name
+        if len(request.POST) is 0:
+            # return redirect('/')
+            return HttpResponse('Added informations to profile successfully')
+        else:
+            return self.update_profile(request, '/', u)
 
-    def facebook_post(self, request):
-        f = Facebook()
-        if request.method == 'GET':
-            return f.update_status(request)
-
-    def facebook_event(self, request):
-        f = Facebook()
-        if request.method == 'GET':
-            return f.send_event(request)
-
-    def facebook_eventcover(self, request):
-        f = Facebook()
-        if request.method == 'GET':
-            return f.send_event_cover(request)
-
-    def participate(self, request):
-        a = Authentication()
-        if request.method == 'GET':
-            return a.view_register(request)
-        elif request.method == 'POST':
-            return a.participate(request)
-
-    def tutorial(self, request):
-        t = Tutorial()
-        if request.method == 'GET':
-            return t.view_tutorial(request)
-        elif request.method == 'POST':
-            return t.finish_tutorial(request)
-
-    def profile_render(self, request):
+    def profile_render(self, _):
         source = """
             <div class="col-xs-12 col-sm-6 col-md-3 col-lg-2 brick">
                 <a class="block profile" href="#" style="display:block; background:black">
@@ -177,16 +355,109 @@ class AccountsView(View):
             'month':     self.month
         }))
 
+    def verify_permissions(self, request):
+        perm = 'super'
+        if 'permissions' in request.COOKIES:
+            perm = request.COOKIES['permissions']
+        permissions = True if 'super' in perm else False
+        return permissions
 
-class ActivityPubView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+    def start(self, request):
+        # Painel do usuario
+        # u = user('efforia');
+        # permissions = self.verify_permissions(request)
+        # actions = settings.EFFORIA_ACTIONS; apps = []
+        # for a in settings.EFFORIA_APPS: apps.append(actions[a])
+        # return render(request,'interface.html',{'static_url':settings.STATIC_URL,
+        #                                     'user':user('efforia'),'perm':permissions,
+        #                                     'name':'%s %s' % (u.first_name,u.last_name),'apps':apps
+        #                                     },content_type='text/html')
+        # Pagina inicial
+        return render(request, 'index.html', {'static_url': settings.STATIC_URL}, content_type='text/html')
 
-    def get(self, request, *args, **kwargs):
-        handler = ActivityPubHandler()
-        return handler.handle_get(request, *args, **kwargs)
+    # TODO: Consider moving this whole coins class code to another package.
+    def external(self, request):
+        u = self.current_user(request)
+        sellables = Sellable.objects.filter(user=u)
+        for s in sellables:
+            s.paid = True
+        return self.redirect('/')
 
-    def post(self, request, *args, **kwargs):
-        handler = ActivityPubHandler()
-        return handler.handle_post(request, *args, **kwargs)
+    def discharge(self, request):
+        userid = request.REQUEST['userid']
+        values = request.REQUEST['value']
+        u = Profile.objects.filter(user=(userid))[0]
+        u.credit -= int(values)
+        u.save()
+        j = json.dumps({'objects': {
+            'userid': userid,
+            'value': u.credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
+
+    def recharge(self, request):
+        userid = request.REQUEST['userid']
+        values = request.REQUEST['value']
+        u = Profile.objects.filter(user=(userid))[0]
+        u.credit += int(values)
+        u.save()
+        json.dumps({'objects': {
+            'userid': userid,
+            'value': u.credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
+
+    def balance(self, request):
+        userid = request.GET['userid']
+        json.dumps({'objects': {
+            'userid': userid,
+            'value': Profile.objects.filter(user=int(userid))[0].credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
+
+
+def user(name):
+    """Return a User object by username."""
+    return User.objects.filter(username=name)[0]
+
+
+def superuser():
+    """Return the first superuser."""
+    return User.objects.filter(is_superuser=True)[0]
+
+
+def convert_datetime(date_value):
+    """Converts a date string to a datetime object."""
+    d = time.strptime(date_value, '%d/%m/%Y')
+    return datetime.fromtimestamp(time.mktime(d))
+
+
+def json_decode(string):
+    """Decode a JSON string."""
+    j = json.loads(string)
+    return ast.literal_eval(j)
+
+
+def url_request(url, data=None, headers=None):
+    """Send a request"""
+    request = urllib.request.Request(url=url, data=data, headers=headers)
+    request_open = urllib.request.urlopen(request)
+    return request_open.geturl()
+
+
+def do_request(url, data=None, headers=None):
+    """Do a request"""
+    request = urllib.request.Request(url=url, data=data, headers=headers)
+    try:
+        request_open = urllib.request.urlopen(request)
+        response = request_open.read()
+        request_open.close()
+    except urllib.error.HTTPError as e:
+        print(url)
+        print(data)
+        print(headers)
+        print(e.code)
+        print(e.msg)
+        print(e.hdrs)
+        print(e.fp)
+    return response

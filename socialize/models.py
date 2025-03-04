@@ -1,4 +1,6 @@
+"""Models for the social network."""
 #!/usr/bin/python
+# pylint: disable=E1101
 #
 # This file is part of django-socialize project.
 #
@@ -44,6 +46,22 @@ class Actor(models.Model):
         """Returns the age of the actor."""
         return datetime.timedelta(self.birthdate, datetime.date.today)
 
+    def get_actor_url(self):
+        """Returns the URL of the actor."""
+        return f'/actors/{self.id}'
+
+    def as_activitypub(self):
+        """Returns the actor as an ActivityPub object."""
+        return {
+            '@context': 'https://www.w3.org/ns/activitystreams',
+            'id': self.get_actor_url(),
+            'type': self.actor_type,
+            'name': self.display_name or self.username,
+            'summary': self.bio,
+            'inbox': self.inbox,
+            'outbox': self.outbox,
+        }
+
 
 class Activity(models.Model):
     """Represents an activity in the social network. (e.g. Post, Like, Follow)"""
@@ -60,18 +78,32 @@ class Object(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     object_type = models.CharField(max_length=50, default='Note')
     content = models.TextField()
-    actor = models.ForeignKey(User, on_delete=models.CASCADE)
+    actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
     published_at = models.DateTimeField(auto_now_add=True)
+
+    def get_object_url(self):
+        """Returns the URL of the object."""
+        return f'/objects/{self.id}'
+
+    def as_activitypub(self):
+        """Returns the object as an ActivityPub object."""
+
+        return {
+            '@context': 'https://www.w3.org/ns/activitystreams',
+            'type': self.object_type,
+            'content': self.content,
+            'actor': self.actor.get_actor_url(),
+            'id': self.get_object_url(),
+        }
 
 
 class Vault(models.Model):
-    """Represents an actor vault with its access keys in the social network. (e.g. Password, Tokens)"""
+    """Represents a vault with its access keys in the social network. (e.g. Password, Tokens)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
     access_key = models.CharField(max_length=255)
     secret_key = models.CharField(max_length=255)
-    # TODO: Add any e-commerce related fields to another package.
-    # coins = IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     # TODO: Consider moving these sensitive fields and functions to another model/table.
     # google_token = models.TextField(default="", max_length=120)
@@ -79,7 +111,9 @@ class Vault(models.Model):
     # facebook_token = models.TextField(default="", max_length=120)
     # def token(self):
     #     return self.google_token or self.twitter_token or self.facebook_token
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    # TODO: Add any e-commerce related fields to another package.
+    # coins = IntegerField(default=0)
 
 
 def user(name):
