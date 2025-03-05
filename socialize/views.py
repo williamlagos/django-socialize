@@ -40,7 +40,6 @@ from django.conf import settings
 from django.urls import path
 
 from .models import Actor, Activity, Object, Vault
-from .forms import TutorialForm
 
 
 class ActorService(View):
@@ -348,9 +347,7 @@ class VaultService(View):
 
     def view_tutorial(self, request):
         social = False if 'social' not in request.GET else True
-        form = TutorialForm()
         return render(request, 'tutorial.html', {
-            'form': form,
             'static_url': settings.STATIC_URL,
             'social': social
         })
