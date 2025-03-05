@@ -26,17 +26,20 @@ import ast
 import time
 
 from datetime import datetime
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponse
 from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 from django.urls import path
 
-from .models import Actor, Activity, Object
+from .models import Actor, Activity, Object, Vault
 from .forms import TutorialForm
 
 
@@ -54,10 +57,50 @@ class ActorService(View):
 
         return JsonResponse({'error': 'Invalid endpoint'}, status=404)
 
+    @method_decorator(csrf_exempt, name='dispatch')
+    def post(self, request):
+        """Handles POST requests for actor-related actions."""
+        data = json.loads(request.body)
+        username = data.get('username')
+
+        if not username:
+            return JsonResponse({'error': 'Username is required'}, status=400)
+
+        actor = self.create_actor(data)
+        return JsonResponse({'id': actor.get_actor_url()}, status=201)
+
     def get_actor(self, _, username):
         """Returns the ActivityPub representation of an Actor for the given username."""
         actor = get_object_or_404(Actor, username=username)
         return JsonResponse(actor.as_activitypub())
+
+    def create_actor(self, data):
+        """Creates a new Actor from the given data."""
+        private_key, public_key = self.generate_keys()
+
+        actor = Actor.objects.create(
+            username=data.get('username'), public_key=public_key)
+        Vault.objects.create(actor=actor, private_key=private_key)
+
+        return actor
+
+    def generate_keys(self):
+        """Generates a new private/public key pair."""
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048)
+
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+
+        public_pem = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        return private_pem.decode(), public_pem.decode()
 
     def get_webfinger(self, request):
         """Returns the WebFinger data request for the user discovery."""
@@ -248,12 +291,15 @@ class ObjectService(View):
 class VaultService(View):
     """Handles Vault endpoints."""
 
-    # TODO: Consider revamping these authentication methods into a new VaultService class
-    def object_token(self, token):
-        relations = settings.EFFORIA_TOKENS
-        typobject = relations[token]
-        return typobject
+    @staticmethod
+    def get_private_key(username):
+        """Fetches the private key for an actor securely"""
+        vault = Vault.objects.filter(actor__username=username).first()
+        if not vault:
+            raise PermissionDenied('Access denied: Private key not found.')
+        return vault.private_key
 
+    # TODO: Consider revamping these authentication methods into a new VaultService class
     def object_byid(self, token, ident):
         obj = self.object_token(token)
         return globals()[obj].objects.filter(id=ident)[0]

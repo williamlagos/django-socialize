@@ -36,6 +36,7 @@ class Actor(models.Model):
     inbox = models.URLField(blank=True, null=True)
     outbox = models.URLField(blank=True, null=True)
     actor_type = models.CharField(max_length=50, default='Person')
+    public_key = models.TextField()
 
     joined_at = models.DateTimeField(auto_now_add=True)
     bio = models.TextField(default='', max_length=140)
@@ -101,9 +102,12 @@ class Vault(models.Model):
     """Represents a vault with its access keys in the social network. (e.g. Password, Tokens)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
-    access_key = models.CharField(max_length=255)
-    secret_key = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+    private_key = models.TextField()
+
+    class Meta:
+        """Meta options for the Vault model."""
+        verbose_name = 'Vault'
+        verbose_name_plural = 'Vaults'
 
     # TODO: Consider moving these sensitive fields and functions to another model/table.
     # google_token = models.TextField(default="", max_length=120)
