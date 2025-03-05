@@ -31,6 +31,7 @@ from django.utils.timezone import now
 class Actor(models.Model):
     """Represents an actor in the social network. (e.g. Person, Group)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     username = models.CharField(max_length=100, unique=True)
     display_name = models.CharField(max_length=255, blank=True, null=True)
     inbox = models.URLField(blank=True, null=True)
@@ -109,15 +110,28 @@ class Vault(models.Model):
         verbose_name = 'Vault'
         verbose_name_plural = 'Vaults'
 
-    # TODO: Consider moving these sensitive fields and functions to another model/table.
-    # google_token = models.TextField(default="", max_length=120)
-    # twitter_token = models.TextField(default="", max_length=120)
-    # facebook_token = models.TextField(default="", max_length=120)
-    # def token(self):
-    #     return self.google_token or self.twitter_token or self.facebook_token
-
     # TODO: Add any e-commerce related fields to another package.
     # coins = IntegerField(default=0)
+
+
+class Token(models.Model):
+    """Represents an OAuth standard token in the social network. (e.g. Access, Refresh)"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    access_token = models.CharField(
+        max_length=255, unique=True, default=uuid.uuid4)
+    expires_at = models.DateTimeField(
+        default=now() + datetime.timedelta(hours=1))
+
+    def is_valid(self):
+        """Returns whether the token is still valid."""
+        return now() < self.expires_at
+
+    def refresh(self):
+        """Refreshes the token and returns the new access token."""
+        self.access_token = uuid.uuid4()
+        self.expires_at = now() + datetime.timedelta(hours=1)
+        self.save()
+        return self.access_token
 
 
 def user(name):

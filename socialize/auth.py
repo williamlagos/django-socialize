@@ -20,17 +20,18 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import logging
+import requests
+
+from django.views import View
+from django.http import JsonResponse
+from django.contrib.auth import authenticate, login
+from django.urls import path
+
+from .views import ActorService
+from .models import Token
 
 
-class OAuthError(RuntimeError):
-    """Generic exception class."""
-
-    def __init__(self, message='OAuth error occured.'):
-        self.message = message
-
-
-class OAuth20Authentication(Authentication):
+class AuthenticationService(View):
     """
     OAuth authenticator. 
 
@@ -38,59 +39,58 @@ class OAuth20Authentication(Authentication):
     and looks up to see if this is a valid OAuth Access Token
     """
 
-    def __init__(self, realm='API'):
-        self.realm = realm
-
-    def is_authenticated(self, request, **kwargs):
+    def post(self, request):
         """
         Verify 2-legged oauth request. Parameters accepted as
         values in "Authorization" header, or as a GET request
         or in a POST body.
         """
-        logging.info("OAuth20Authentication")
+        provider = request.POST.get(
+            'provider')  # OAuth provider, e.g. 'google'
+        access_token = request.POST.get(
+            'access_token')  # Token from OAuth provider
 
-        try:
-            key = request.GET.get('oauth_consumer_key')
-            if not key:
-                key = request.POST.get('oauth_consumer_key')
-            if not key:
-                auth_header_value = request.META.get('HTTP_AUTHORIZATION')
-                if auth_header_value:
-                    key = auth_header_value.split(' ')[1]
-            if not key:
-                logging.error('OAuth20Authentication. No consumer_key found.')
-                return None
-            """
-            If verify_access_token() does not pass, it will raise an error
-            """
-            token = verify_access_token(key)
+        if not provider or not access_token:
+            return JsonResponse({'error': 'Missing provider or access_token'}, status=400)
 
-            # If OAuth authentication is successful, set the request user to the token user for authorization
-            request.user = token.user
+        # Verify token with the provider
+        user_data = self.verify_access_token(provider, access_token)
+        if not user_data:
+            return JsonResponse({'error': 'Invalid access_token'}, status=401)
 
-            # If OAuth authentication is successful, set oauth_consumer_key on request in case we need it later
-            request.META['oauth_consumer_key'] = key
-            return True
-        except KeyError as e:
-            logging.exception("Error in OAuth20Authentication.")
-            request.user = AnonymousUser()
-            return False
-        except Exception as e:
-            logging.exception("Error in OAuth20Authentication.")
-            return False
-        return True
+        # If OAuth authentication is not successful, create the actor
+        user = authenticate(username=user_data['username'])
+        if not user:
+            user = ActorService().create_actor(
+                {'username': user_data['username']}).user
 
+        login(request, user)
 
-def verify_access_token(key):
-    # Check if key is in AccessToken key
-    try:
-        token = AccessToken.objects.get(token=key)
+        # If OAuth login process is successful, return the access token
+        token, _ = Token.objects.get_or_create(
+            access_token=access_token, user=user)
+        return JsonResponse({'access_token': token.access_token, 'expires_in': 3600})
 
-        # Check if token has expired
-        if token.expires < timezone.now():
-            raise OAuthError('AccessToken has expired.')
-    except AccessToken.DoesNotExist as e:
-        raise OAuthError("AccessToken not found at all.")
+    def verify_access_token(self, provider, token):
+        """Check if key is in AccessToken key and not expired."""
+        provider_urls = {
+            'google': 'https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={token}',
+            'facebook': 'https://graph.facebook.com/me?access_token={token}&fields=email',
+        }
 
-    logging.info('Valid access')
-    return token
+        if provider not in provider_urls:
+            return None
+
+        response = requests.get(
+            provider_urls[provider].format(token=token), timeout=10)
+        if response.status_code != 200:
+            return None
+
+        return response.json()
+
+    @staticmethod
+    def get_urlpatterns():
+        """Returns the URL patterns for the authentication service."""
+        return [
+            path('auth/', AuthenticationService.as_view(), name='auth'),
+        ]
