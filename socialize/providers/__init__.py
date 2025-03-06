@@ -18,7 +18,5 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .default import *
 from .facebook import *
 from .google import *
-from .twitter import *
