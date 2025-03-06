@@ -1,8 +1,10 @@
+"""Google social provider for the socialize app."""
 #!/usr/bin/python
+# pylint: disable=E1101
 #
 # This file is part of django-socialize project.
 #
-# Copyright (C) 2011-2020 William Oliveira de Lagos <william.lagos@icloud.com>
+# Copyright (C) 2010-2025 William Oliveira de Lagos <william.lagos@icloud.com>
 #
 # Socialize is free software: you can redistribute it and/or modify
 # it under the terms of the Lesser GNU General Public License as published by
@@ -17,6 +19,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
+
+# TODO: Revamp this social provider considering the latest changes in the Google/YouTube API.
 
 import json
 from io import StringIO
