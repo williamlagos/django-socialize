@@ -30,7 +30,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.conf import settings
 
 from .models import Actor, Activity, Object, Vault, Token
@@ -231,42 +231,35 @@ class VaultService:
             raise PermissionDenied('Access denied: Private key not found.')
         return vault.private_key
 
-    # TODO: Consider revamping these authentication methods into a new VaultService class
+    def authenticate(self, username, public_key):
+        """Authenticates the user based on the public key."""
+        try:
+            actor = Actor.objects.get(username=username)
+            vault = Vault.objects.get(actor=actor)
+            stored_public_key = vault.private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode()
 
-    def authenticate(self, username, password):
-        exists = User.objects.filter(username=username)
-        if exists:
-            if exists[0].check_password(password):
-                return exists
-        else:
+            if stored_public_key == public_key:
+                return actor.user
+            else:
+                return None
+        except (Actor.DoesNotExist, Vault.DoesNotExist):
             return None
 
-    def is_tutorial_finished(self, request):
-        u = self.current_user(request)
-        p = Profile.objects.all().filter(user=u)[0]
-        p.first_time = False
-        p.save()
-        return HttpResponse('Tutorial finalizado.')
+    def check_user_vault(self, username):
+        """Check if the vault already has the private key for the actor"""
 
-    def finish_tutorial(self, request):
-        whitespace = ' '
-        data = request.POST
-        name = request.COOKIES['username']
-        u = User.objects.filter(username=name)[0]
-        if 'name' in data:
-            lname = data['name'].split()
-            u.first_name, u.last_name = lname[0], whitespace.join(lname[1:])
-        u.save()
-        request.session['user'] = name
-        if len(request.POST) is 0:
-            # return redirect('/')
-            return HttpResponse('Added informations to profile successfully')
-        else:
-            return self.update_profile(request, '/', u)
+        user = User.objects.filter(username=username).first()
+        if not user:
+            return JsonResponse({'error': 'User not found'}, status=404)
 
-    def user(self, name):
-        """Return a User object by username."""
-        return User.objects.filter(username=name)[0]
+        vault = Vault.objects.filter(actor__username=username).first()
+        if not vault:
+            return JsonResponse({'error': 'Private key not found in vault'}, status=404)
+
+        return JsonResponse({'message': 'Vault already has the private key'})
 
 
 class AuthenticationService:
