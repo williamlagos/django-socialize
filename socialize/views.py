@@ -124,14 +124,43 @@ class ObjectView(View):
         route = kwargs.get('route')
 
         if route == 'object':
-            return self.get_object(request, kwargs.get('object_id'))
+            return self.service.get_object(request, kwargs.get('object_id'), as_activitypub='activity_pub' in request.GET)
 
         return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+
+    def post(self, request, *_, **kwargs):
+        """Handles POST requests for object-related actions."""
+        route = kwargs.get('route')
+
+        if route == 'object':
+            return self.service.create_object(request, kwargs.get('object_id'))
+
+        return HttpResponseNotAllowed(['POST'])
+
+    def patch(self, request, *_, **kwargs):
+        """Handles PATCH requests for object-related actions."""
+        route = kwargs.get('route')
+
+        if route == 'object':
+            return self.service.update_object(request, kwargs.get('object_id'))
+
+        return HttpResponseNotAllowed(['PATCH'])
+
+    def delete(self, request, *_, **kwargs):
+        """Handles DELETE requests for object-related actions."""
+        route = kwargs.get('route')
+
+        if route == 'object':
+            return self.service.delete_object(request, kwargs.get('object_id'))
+
+        return HttpResponseNotAllowed(['DELETE'])
 
     @staticmethod
     def get_urlpatterns():
         """Returns the URL patterns for the ObjectService."""
         return [
+            path('objects/', ObjectView.as_view(),
+                 {'route': 'object'}, name='object'),
             path('objects/<uuid:object_id>/', ObjectService.as_view(),
                  {'route': 'object'}, name='object'),
         ]

@@ -162,37 +162,62 @@ class ActivityService:
 class ObjectService:
     """Handles ActivityPub Object endpoints."""
 
-    def get_object(self, _, object_id):
+    def get_object(self, _, object_id, as_activitypub=True):
         """Returns the ActivityPub representation of an Object for the given ID."""
         obj = get_object_or_404(Object, id=object_id)
-        return JsonResponse(obj.as_activitypub())
+        if as_activitypub:
+            return JsonResponse(obj.as_activitypub())
+        return JsonResponse({
+            'id': obj.id,
+            'actor': obj.actor.username,
+            'object_type': obj.object_type,
+            'content': obj.content,
+            'created_at': obj.created_at,
+            'updated_at': obj.updated_at,
+        })
 
-    # TODO: Consider merging the logic in the Search and Delete class code methods below with the ObjectService class.
-    def delete_element(self, request):
-        oid = request.GET['id']
-        modobj = settings.Socialize_TOKENS[request.GET['token']]
-        module, obj = modobj.split('.')
-        o = self.class_module('%s.models' % module, obj)
-        query = o.objects.filter(id=oid)
-        if len(query):
-            query[0].delete()
-        return HttpResponse('Object deleted successfully')
-
-    def explore(self, request):
+    def create_object(self, request, username):
+        """Creates a new Object from the given data."""
         try:
-            query = request.GET['explore']
-        except KeyError as e:
-            query = ''
-        u = self.current_user(request)
-        others = [x['id'] for x in Profile.objects.values('id')]
-        objects = self.feed(u, others)
-        [obj for obj in objects if query.lower() in obj.name.lower()]
-        return self.view_mosaic(request, objects)
+            data = json.loads(request.body)
+            actor = get_object_or_404(Actor, username=username)
+            obj = Object.objects.create(
+                actor=actor,
+                object_type=data.get('type'),
+                content=data.get('content'),
+            )
+            return JsonResponse(obj.as_activitypub())
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
 
-    def object_byid(self, token, ident):
-        """Return an object by its ID."""
-        obj = self.object_token(token)
-        return globals()[obj].objects.filter(id=ident)[0]
+    def update_object(self, request, pk):
+        """Updates an object's fields based on the provided data."""
+        try:
+            obj = Object.objects.get(pk=pk)
+        except Object.DoesNotExist:
+            return JsonResponse({'error': 'Object not found'}, status=404)
+
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+        # Update the object fields based on the provided data
+        for field, value in data.items():
+            if hasattr(obj, field):
+                setattr(obj, field, value)
+
+        obj.save()
+        return JsonResponse({'message': 'Object updated successfully'})
+
+    def delete_object(self, _, pk):
+        """Deletes an object based on the provided ID."""
+        try:
+            obj = Object.objects.get(pk=pk)
+            obj.delete()
+            return JsonResponse({'message': 'Object deleted successfully'})
+        except Object.DoesNotExist:
+            return JsonResponse({'error': 'Object not found'}, status=404)
 
 
 class VaultService:
