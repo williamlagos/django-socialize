@@ -31,7 +31,7 @@ from cryptography.exceptions import InvalidSignature
 from django.http import JsonResponse
 
 from .models import Actor
-from .views import VaultService
+from .services import VaultService
 
 
 class ActivityPubSigningMiddleware:

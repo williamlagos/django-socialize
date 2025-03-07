@@ -23,6 +23,7 @@
 import json
 import time
 import datetime
+import requests
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -31,12 +32,13 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login
 from django.http import JsonResponse, HttpResponse
 from django.template import Template, Context
 from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 
-from .models import Actor, Activity, Object, Vault
+from .models import Actor, Activity, Object, Vault, Token
 
 
 class ActorService:
@@ -403,3 +405,45 @@ class VaultService:
             'value': Profile.objects.filter(user=int(userid))[0].credit
         }})
         return HttpResponse(j, mimetype='application/json')
+
+
+class AuthenticationService:
+    """
+    OAuth authentication service. 
+
+    This Authentication method checks for a provided HTTP_AUTHORIZATION
+    and looks up to see if this is a valid OAuth Access Token
+    """
+
+    def authenticate(self, request, user_data, access_token):
+        """Authenticate the user using the OAuth provider."""
+
+        # If OAuth authentication is not successful, create the actor
+        user = authenticate(username=user_data['username'])
+        if not user:
+            user = ActorService().create_actor(
+                {'username': user_data['username']}).user
+
+        login(request, user)
+
+        # If OAuth login process is successful, return the access token
+        token, _ = Token.objects.get_or_create(
+            access_token=access_token, user=user)
+        return JsonResponse({'access_token': token.access_token, 'expires_in': 3600})
+
+    def verify_access_token(self, provider, token):
+        """Check if key is in AccessToken key and not expired."""
+        provider_urls = {
+            'google': 'https://www.googleapis.com/oauth2/v1/tokeninfo?access_token={token}',
+            'facebook': 'https://graph.facebook.com/me?access_token={token}&fields=email',
+        }
+
+        if provider not in provider_urls:
+            return None
+
+        response = requests.get(
+            provider_urls[provider].format(token=token), timeout=10)
+        if response.status_code != 200:
+            return None
+
+        return response.json()

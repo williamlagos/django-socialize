@@ -28,7 +28,7 @@ from django.http import JsonResponse, HttpResponseNotAllowed
 from django.utils.decorators import method_decorator
 from django.urls import path
 
-from .services import ActorService, ActivityService, ObjectService
+from .services import ActorService, ActivityService, ObjectService, AuthenticationService
 
 
 class ActorView(View):
@@ -122,4 +122,43 @@ class ObjectView(View):
         return [
             path('objects/<uuid:object_id>/', ObjectService.as_view(),
                  {'route': 'object'}, name='object'),
+        ]
+
+
+class AuthenticationView(View):
+    """
+    OAuth authenticator. 
+
+    This Authentication method checks for a provided HTTP_AUTHORIZATION
+    and looks up to see if this is a valid OAuth Access Token
+    """
+
+    service = AuthenticationService()
+
+    def post(self, request):
+        """
+        Verify 2-legged oauth request. Parameters accepted as
+        values in "Authorization" header, or as a GET request
+        or in a POST body.
+        """
+        provider = request.POST.get(
+            'provider')  # OAuth provider, e.g. 'google'
+        access_token = request.POST.get(
+            'access_token')  # Token from OAuth provider
+
+        if not provider or not access_token:
+            return JsonResponse({'error': 'Missing provider or access_token'}, status=400)
+
+        # Verify token with the provider
+        user_data = self.service.verify_access_token(provider, access_token)
+        if not user_data:
+            return JsonResponse({'error': 'Invalid access_token'}, status=401)
+
+        return self.service.authenticate(request, user_data, access_token)
+
+    @staticmethod
+    def get_urlpatterns():
+        """Returns the URL patterns for the authentication service."""
+        return [
+            path('auth/', AuthenticationView.as_view(), name='auth'),
         ]
