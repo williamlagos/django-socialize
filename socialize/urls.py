@@ -18,10 +18,10 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .views import ActorService, ActivityService, ObjectService
+from .views import ActorView, ActivityView, ObjectView
 
 urlpatterns = [
-    ActorService.get_urlpatterns() +
-    ActivityService.get_urlpatterns() +
-    ObjectService.get_urlpatterns()
+    ActorView.get_urlpatterns() +
+    ActivityView.get_urlpatterns() +
+    ObjectView.get_urlpatterns()
 ]

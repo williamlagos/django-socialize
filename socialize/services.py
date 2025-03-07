@@ -27,7 +27,10 @@ from cryptography.hazmat.primitives import serialization
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponse
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.models import User
+from django.http import JsonResponse, HttpResponse
+from django.template import Template, Context
 from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 
@@ -133,3 +136,263 @@ class ActorService:
                 p.bio = v
         p.save()
         return HttpResponse('Added informations to profile successfully')
+
+
+class ActivityService:
+    """Handles ActivityPub Activity endpoints for inbox and outbox."""
+
+    def post_inbox(self, request, username):
+        """Handles ActivityPub inbox messages."""
+        try:
+            data = json.loads(request.body)
+            actor = get_object_or_404(Actor, username=username)
+            Activity.objects.create(
+                actor=actor,
+                object_data=data,
+                activity_type=data.get('type'),
+            )
+            return JsonResponse({'status': 'accepted'}, status=202)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+
+    def get_outbox(self, _, username):
+        """Returns the ActivityPub representation of an Actor's outbox."""
+        actor = get_object_or_404(Actor, username=username)
+        activities = Activity.objects.filter(
+            actor=actor).order_by('-published_at')
+
+        return JsonResponse({
+            '@context': 'https://www.w3.org/ns/activitystreams',
+            'id': actor.outbox,
+            'type': 'OrderedCollection',
+            'totalItems': activities.count(),
+            'orderedItems': [activity.object_data for activity in activities]
+        })
+
+    # TODO: Consider merging the logic in the following class code methods below into the ActivityService class.
+    def view_following(self, request):
+        u = self.current_user(request)
+        rels = []
+        for f in Followed.objects.filter(follower=u.id):
+            rels.append(Profile.objects.filter(user_id=f.followed)[0])
+        request.COOKIES['permissions'] = 'view_only'
+        return self.view_mosaic(request, rels)
+
+    def become_follower(self, request):
+        u = self.current_user(request).id
+        followed = Profile.objects.filter(
+            id=request.GET['profile_id'])[0].user_id
+        follow = Followed(followed=followed, follower=u)
+        follow.save()
+        return HttpResponse('Profile followed successfully')
+
+    def leave_follower(self, request):
+        u = self.current_user(request).id
+        followed = request.GET['profile_id']
+        query = Followed.objects.filter(followed=followed, follower=u)
+        if len(query):
+            query[0].delete()
+        return HttpResponse('Profile unfollowed successfully')
+
+
+class ObjectService:
+    """Handles ActivityPub Object endpoints."""
+
+    def get_object(self, _, object_id):
+        """Returns the ActivityPub representation of an Object for the given ID."""
+        obj = get_object_or_404(Object, id=object_id)
+        return JsonResponse(obj.as_activitypub())
+
+    # TODO: Consider mergint the logic in the Search and Delete class code methods below with the ObjectService class.
+    def delete_element(self, request):
+        oid = request.GET['id']
+        modobj = settings.Socialize_TOKENS[request.GET['token']]
+        module, obj = modobj.split('.')
+        o = self.class_module('%s.models' % module, obj)
+        query = o.objects.filter(id=oid)
+        if len(query):
+            query[0].delete()
+        return HttpResponse('Object deleted successfully')
+
+    def explore(self, request):
+        try:
+            query = request.GET['explore']
+        except KeyError as e:
+            query = ''
+        u = self.current_user(request)
+        others = [x['id'] for x in Profile.objects.values('id')]
+        objects = self.feed(u, others)
+        [obj for obj in objects if query.lower() in obj.name.lower()]
+        return self.view_mosaic(request, objects)
+
+
+class VaultService:
+    """Handles Vault endpoints."""
+
+    @staticmethod
+    def get_private_key(username):
+        """Fetches the private key for an actor securely"""
+        vault = Vault.objects.filter(actor__username=username).first()
+        if not vault:
+            raise PermissionDenied('Access denied: Private key not found.')
+        return vault.private_key
+
+    # TODO: Consider revamping these authentication methods into a new VaultService class
+    def object_byid(self, token, ident):
+        obj = self.object_token(token)
+        return globals()[obj].objects.filter(id=ident)[0]
+
+    def authenticate(self, username, password):
+        exists = User.objects.filter(username=username)
+        if exists:
+            if exists[0].check_password(password):
+                return exists
+        else:
+            return None
+
+    def authenticated(self):
+        name = self.get_current_user()
+        if not name:
+            # self.redirect('login')
+            self.render('templates/enter.html', STATIC_URL=settings.STATIC_URL)
+            return False
+        else:
+            return True
+
+    def view_id(self, request):
+        u = self.current_user(request)
+        if 'first_turn' in request.GET:
+            if u.profile.first_turn:
+                return HttpResponse('yes')
+            else:
+                return HttpResponse('no')
+        elif 'object' in request.GET:
+            o, t = request.GET['object'][0].split(';')
+            now, objs, rels = self.get_object_bydate(o, t)
+            obj = globals()[objs].objects.all().filter(date=now)[0]
+            if hasattr(obj, 'user'):
+                return HttpResponse(str(obj.user.id))
+            else:
+                return HttpResponse(str(self.current_user().id))
+        else:
+            return HttpResponse(str(self.current_user().id))
+
+    def is_tutorial_finished(self, request):
+        u = self.current_user(request)
+        p = Profile.objects.all().filter(user=u)[0]
+        p.first_time = False
+        p.save()
+        return HttpResponse('Tutorial finalizado.')
+
+    def view_tutorial(self, request):
+        social = False if 'social' not in request.GET else True
+        return render(request, 'tutorial.html', {
+            'static_url': settings.STATIC_URL,
+            'social': social
+        })
+
+    def finish_tutorial(self, request):
+        whitespace = ' '
+        data = request.POST
+        name = request.COOKIES['username']
+        u = User.objects.filter(username=name)[0]
+        if 'name' in data:
+            lname = data['name'].split()
+            u.first_name, u.last_name = lname[0], whitespace.join(lname[1:])
+        u.save()
+        request.session['user'] = name
+        if len(request.POST) is 0:
+            # return redirect('/')
+            return HttpResponse('Added informations to profile successfully')
+        else:
+            return self.update_profile(request, '/', u)
+
+    def profile_render(self, _):
+        source = """
+            <div class="col-xs-12 col-sm-6 col-md-3 col-lg-2 brick">
+                <a class="block profile" href="#" style="display:block; background:black">
+                <div class="box profile">
+                <div class="content">
+                <h2 class="name">{{ firstname }}</h2>
+                <div class="centered">{{ career }}</div>
+                </div>
+                {% if visual %}
+                    <img src="{{ visual }}" width="100%"/>
+                {% else %}
+                    <h1 class="centered"><span class="glyphicon glyphicon-user big-glyphicon"></span></h1>
+                {% endif %}
+                <div class="content centered">
+                {{ bio }}
+                <div class="id hidden">{{ id }}</div></div></div>
+                <div class="date"> Entrou em {{ day }} de {{month}}</div>
+            </a></div>
+        """
+        return Template(source).render(Context({
+            'firstname': self.user.first_name,
+            'career':    self.career,
+            'id':        self.id,
+            'visual':    self.visual,
+            'bio':       self.bio,
+            'day':       self.date.day,
+            'month':     self.month
+        }))
+
+    def verify_permissions(self, request):
+        perm = 'super'
+        if 'permissions' in request.COOKIES:
+            perm = request.COOKIES['permissions']
+        permissions = True if 'super' in perm else False
+        return permissions
+
+    def start(self, request):
+        # Painel do usuario
+        # u = user('efforia');
+        # permissions = self.verify_permissions(request)
+        # actions = settings.EFFORIA_ACTIONS; apps = []
+        # for a in settings.EFFORIA_APPS: apps.append(actions[a])
+        # return render(request,'interface.html',{'static_url':settings.STATIC_URL,
+        #                                     'user':user('efforia'),'perm':permissions,
+        #                                     'name':'%s %s' % (u.first_name,u.last_name),'apps':apps
+        #                                     },content_type='text/html')
+        # Pagina inicial
+        return render(request, 'index.html', {'static_url': settings.STATIC_URL}, content_type='text/html')
+
+    # TODO: Consider moving this whole coins class code to another package.
+    def external(self, request):
+        u = self.current_user(request)
+        sellables = Sellable.objects.filter(user=u)
+        for s in sellables:
+            s.paid = True
+        return self.redirect('/')
+
+    def discharge(self, request):
+        userid = request.REQUEST['userid']
+        values = request.REQUEST['value']
+        u = Profile.objects.filter(user=(userid))[0]
+        u.credit -= int(values)
+        u.save()
+        j = json.dumps({'objects': {
+            'userid': userid,
+            'value': u.credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
+
+    def recharge(self, request):
+        userid = request.REQUEST['userid']
+        values = request.REQUEST['value']
+        u = Profile.objects.filter(user=(userid))[0]
+        u.credit += int(values)
+        u.save()
+        json.dumps({'objects': {
+            'userid': userid,
+            'value': u.credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
+
+    def balance(self, request):
+        userid = request.GET['userid']
+        json.dumps({'objects': {
+            'userid': userid,
+            'value': Profile.objects.filter(user=int(userid))[0].credit
+        }})
+        return HttpResponse(j, mimetype='application/json')
