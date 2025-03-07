@@ -21,6 +21,8 @@
 #
 
 import json
+import time
+import datetime
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
@@ -129,7 +131,8 @@ class ActorService:
         p = user.profile
         for k, v in request.POST.items():
             if 'birth' in k:
-                p.birthday = self.convert_datetime(v)
+                d = time.strptime(date_value, '%d/%m/%Y')
+                p.birthday = datetime.fromtimestamp(time.mktime(d))
             elif 'career' in k:
                 p.career = v
             elif 'bio' in k:
@@ -346,7 +349,7 @@ class VaultService:
 
     def start(self, request):
         # Painel do usuario
-        # u = user('efforia');
+        # u = self.user('efforia');
         # permissions = self.verify_permissions(request)
         # actions = settings.EFFORIA_ACTIONS; apps = []
         # for a in settings.EFFORIA_APPS: apps.append(actions[a])
@@ -356,6 +359,10 @@ class VaultService:
         #                                     },content_type='text/html')
         # Pagina inicial
         return render(request, 'index.html', {'static_url': settings.STATIC_URL}, content_type='text/html')
+
+    def user(self, name):
+        """Return a User object by username."""
+        return User.objects.filter(username=name)[0]
 
     # TODO: Consider moving this whole coins class code to another package.
     def external(self, request):

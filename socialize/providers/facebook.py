@@ -23,7 +23,7 @@
 # TODO: Revamp this social provider considering the latest changes in the Facebook API.
 
 import json
-import urllib
+import time
 import re
 import logging
 
@@ -85,3 +85,8 @@ class FacebookSocialProvider:
         self.oauth_post_request('/%s' % ident, token,
                                 {'cover_url': photo}, 'facebook')
         return response('Published image cover on event successfully on Facebook')
+
+    def convert_datetime(self, date_value):
+        """Converts a date string to a datetime object."""
+        d = time.strptime(date_value, '%d/%m/%Y')
+        return datetime.fromtimestamp(time.mktime(d))

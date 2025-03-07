@@ -23,8 +23,11 @@
 # TODO: Revamp this social provider considering the latest changes in the Google/YouTube API.
 
 import json
+import urllib
 from io import StringIO
 from xml.dom.minidom import parseString
+
+from django.conf import settings
 
 try:
     import gdata.youtube
@@ -41,7 +44,7 @@ class GoogleSocialProvider:
 
     def __init__(self):
         self.developer_key = settings.GOOGLE_API_KEY
-        self.client_id = google_api['client_id']
+        self.client_id = settings.GOOGLE_CLIENT_ID
 
     def videos_by_user(self, username):
         uri = 'https://gdata.youtube.com/feeds/api/users/%s/uploads?alt=json' % username
@@ -89,3 +92,20 @@ class GoogleSocialProvider:
 
     def search_video(self, search_terms):
         pass
+
+    def do_request(self, url, data=None, headers=None):
+        """Do a request"""
+        request = urllib.request.Request(url=url, data=data, headers=headers)
+        try:
+            request_open = urllib.request.urlopen(request)
+            response = request_open.read()
+            request_open.close()
+        except urllib.error.HTTPError as e:
+            print(url)
+            print(data)
+            print(headers)
+            print(e.code)
+            print(e.msg)
+            print(e.hdrs)
+            print(e.fp)
+        return response

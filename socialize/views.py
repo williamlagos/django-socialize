@@ -21,16 +21,9 @@
 #
 
 import json
-import urllib
-import ast
-import time
-
-from datetime import datetime
-
 
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.models import User
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.utils.decorators import method_decorator
 from django.urls import path
@@ -130,50 +123,3 @@ class ObjectView(View):
             path('objects/<uuid:object_id>/', ObjectService.as_view(),
                  {'route': 'object'}, name='object'),
         ]
-
-
-def user(name):
-    """Return a User object by username."""
-    return User.objects.filter(username=name)[0]
-
-
-def superuser():
-    """Return the first superuser."""
-    return User.objects.filter(is_superuser=True)[0]
-
-
-def convert_datetime(date_value):
-    """Converts a date string to a datetime object."""
-    d = time.strptime(date_value, '%d/%m/%Y')
-    return datetime.fromtimestamp(time.mktime(d))
-
-
-def json_decode(string):
-    """Decode a JSON string."""
-    j = json.loads(string)
-    return ast.literal_eval(j)
-
-
-def url_request(url, data=None, headers=None):
-    """Send a request"""
-    request = urllib.request.Request(url=url, data=data, headers=headers)
-    request_open = urllib.request.urlopen(request)
-    return request_open.geturl()
-
-
-def do_request(url, data=None, headers=None):
-    """Do a request"""
-    request = urllib.request.Request(url=url, data=data, headers=headers)
-    try:
-        request_open = urllib.request.urlopen(request)
-        response = request_open.read()
-        request_open.close()
-    except urllib.error.HTTPError as e:
-        print(url)
-        print(data)
-        print(headers)
-        print(e.code)
-        print(e.msg)
-        print(e.hdrs)
-        print(e.fp)
-    return response
