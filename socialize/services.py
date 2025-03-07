@@ -366,46 +366,6 @@ class VaultService:
         """Return a User object by username."""
         return User.objects.filter(username=name)[0]
 
-    # TODO: Consider moving this whole coins class code to another package.
-    def external(self, request):
-        u = self.current_user(request)
-        sellables = Sellable.objects.filter(user=u)
-        for s in sellables:
-            s.paid = True
-        return self.redirect('/')
-
-    def discharge(self, request):
-        userid = request.REQUEST['userid']
-        values = request.REQUEST['value']
-        u = Profile.objects.filter(user=(userid))[0]
-        u.credit -= int(values)
-        u.save()
-        j = json.dumps({'objects': {
-            'userid': userid,
-            'value': u.credit
-        }})
-        return HttpResponse(j, mimetype='application/json')
-
-    def recharge(self, request):
-        userid = request.REQUEST['userid']
-        values = request.REQUEST['value']
-        u = Profile.objects.filter(user=(userid))[0]
-        u.credit += int(values)
-        u.save()
-        json.dumps({'objects': {
-            'userid': userid,
-            'value': u.credit
-        }})
-        return HttpResponse(j, mimetype='application/json')
-
-    def balance(self, request):
-        userid = request.GET['userid']
-        json.dumps({'objects': {
-            'userid': userid,
-            'value': Profile.objects.filter(user=int(userid))[0].credit
-        }})
-        return HttpResponse(j, mimetype='application/json')
-
 
 class AuthenticationService:
     """

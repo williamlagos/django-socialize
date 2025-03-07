@@ -110,9 +110,6 @@ class Vault(models.Model):
         verbose_name = 'Vault'
         verbose_name_plural = 'Vaults'
 
-    # TODO: Add any e-commerce related fields to another package.
-    # coins = IntegerField(default=0)
-
 
 class Token(models.Model):
     """Represents an OAuth standard token in the social network. (e.g. Access, Refresh)"""
