@@ -21,19 +21,16 @@
 #
 
 import json
-import time
-import datetime
 import requests
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.conf import settings
 
 from .models import Actor, Activity, Object, Vault, Token
@@ -42,33 +39,26 @@ from .models import Actor, Activity, Object, Vault, Token
 class ActorService:
     """Handles ActivityPub Actor endpoints."""
 
-    def get(self, request, *_, **kwargs):
-        """Handles GET requests for actor-related actions."""
-        route = kwargs.get('route')
-
-        if route == 'actor':
-            return self.get_actor(request, kwargs.get('username'))
-        elif route == 'webfinger':
-            return self.get_webfinger(request)
-
-        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
-
-    @method_decorator(csrf_exempt, name='dispatch')
-    def post(self, request):
-        """Handles POST requests for actor-related actions."""
-        data = json.loads(request.body)
-        username = data.get('username')
-
-        if not username:
-            return JsonResponse({'error': 'Username is required'}, status=400)
-
-        actor = self.create_actor(data)
-        return JsonResponse({'id': actor.get_actor_url()}, status=201)
-
-    def get_actor(self, _, username):
+    def get_actor(self, _, username, as_activitypub=True):
         """Returns the ActivityPub representation of an Actor for the given username."""
         actor = get_object_or_404(Actor, username=username)
-        return JsonResponse(actor.as_activitypub())
+        if as_activitypub:
+            return JsonResponse(actor.as_activitypub())
+        return JsonResponse({
+            'id': actor.id,
+            'username': actor.user.username,
+            'display_name': actor.get_display_name(),
+            'actor_type': actor.actor_type,
+            'bio': actor.bio,
+            'title': actor.title,
+            'birthdate': actor.birthdate,
+            'inbox': actor.inbox,
+            'outbox': actor.outbox,
+            'permissions': actor.get_user_permissions(),
+            'score': actor.score,
+            'created_at': actor.created_at,
+            'updated_at': actor.updated_at,
+        })
 
     def create_actor(self, data):
         """Creates a new Actor from the given data."""
@@ -79,6 +69,26 @@ class ActorService:
         Vault.objects.create(actor=actor, private_key=private_key)
 
         return actor
+
+    def update_actor(self, request, pk):
+        """Updates an actor's fields based on the provided data."""
+        try:
+            actor = Actor.objects.get(pk=pk)
+        except Actor.DoesNotExist:
+            return JsonResponse({'error': 'Actor not found'}, status=404)
+
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest('Invalid JSON')
+
+        # Update the actor fields based on the provided data
+        for field, value in data.items():
+            if hasattr(actor, field):
+                setattr(actor, field, value)
+
+        actor.save()
+        return JsonResponse({'message': 'Actor updated successfully'})
 
     def generate_keys(self):
         """Generates a new private/public key pair."""
@@ -115,30 +125,6 @@ class ActorService:
             })
 
         return JsonResponse({'error': 'Invalid WebFinger request'}, status=400)
-
-    # TODO: Consider merging the logic in the old profiles class code methods below into the ActorService class.
-    def accumulate_points(self, points, request=None):
-        if request is None:
-            u = self.current_user()
-        else:
-            u = self.current_user(request)
-        current_profile = Profile.objects.all().filter(user=u)[0]
-        current_profile.points += points
-        current_profile.save()
-
-    def update_profile(self, request, url, user):
-        birthday = career = bio = ''
-        p = user.profile
-        for k, v in request.POST.items():
-            if 'birth' in k:
-                d = time.strptime(date_value, '%d/%m/%Y')
-                p.birthday = datetime.fromtimestamp(time.mktime(d))
-            elif 'career' in k:
-                p.career = v
-            elif 'bio' in k:
-                p.bio = v
-        p.save()
-        return HttpResponse('Added informations to profile successfully')
 
 
 class ActivityService:
@@ -206,7 +192,7 @@ class ObjectService:
         obj = get_object_or_404(Object, id=object_id)
         return JsonResponse(obj.as_activitypub())
 
-    # TODO: Consider mergint the logic in the Search and Delete class code methods below with the ObjectService class.
+    # TODO: Consider merging the logic in the Search and Delete class code methods below with the ObjectService class.
     def delete_element(self, request):
         oid = request.GET['id']
         modobj = settings.Socialize_TOKENS[request.GET['token']]
@@ -228,6 +214,11 @@ class ObjectService:
         [obj for obj in objects if query.lower() in obj.name.lower()]
         return self.view_mosaic(request, objects)
 
+    def object_byid(self, token, ident):
+        """Return an object by its ID."""
+        obj = self.object_token(token)
+        return globals()[obj].objects.filter(id=ident)[0]
+
 
 class VaultService:
     """Handles Vault endpoints."""
@@ -241,9 +232,6 @@ class VaultService:
         return vault.private_key
 
     # TODO: Consider revamping these authentication methods into a new VaultService class
-    def object_byid(self, token, ident):
-        obj = self.object_token(token)
-        return globals()[obj].objects.filter(id=ident)[0]
 
     def authenticate(self, username, password):
         exists = User.objects.filter(username=username)
@@ -252,24 +240,6 @@ class VaultService:
                 return exists
         else:
             return None
-
-    def view_id(self, request):
-        u = self.current_user(request)
-        if 'first_turn' in request.GET:
-            if u.profile.first_turn:
-                return HttpResponse('yes')
-            else:
-                return HttpResponse('no')
-        elif 'object' in request.GET:
-            o, t = request.GET['object'][0].split(';')
-            now, objs, rels = self.get_object_bydate(o, t)
-            obj = globals()[objs].objects.all().filter(date=now)[0]
-            if hasattr(obj, 'user'):
-                return HttpResponse(str(obj.user.id))
-            else:
-                return HttpResponse(str(self.current_user().id))
-        else:
-            return HttpResponse(str(self.current_user().id))
 
     def is_tutorial_finished(self, request):
         u = self.current_user(request)
@@ -293,13 +263,6 @@ class VaultService:
             return HttpResponse('Added informations to profile successfully')
         else:
             return self.update_profile(request, '/', u)
-
-    def verify_permissions(self, request):
-        perm = 'super'
-        if 'permissions' in request.COOKIES:
-            perm = request.COOKIES['permissions']
-        permissions = True if 'super' in perm else False
-        return permissions
 
     def user(self, name):
         """Return a User object by username."""

@@ -32,12 +32,12 @@ class Actor(models.Model):
     """Represents an actor in the social network. (e.g. Person, Group)"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    username = models.CharField(max_length=100, unique=True)
     display_name = models.CharField(max_length=255, blank=True, null=True)
     inbox = models.URLField(blank=True, null=True)
     outbox = models.URLField(blank=True, null=True)
     actor_type = models.CharField(max_length=50, default='Person')
     public_key = models.TextField()
+    score = models.IntegerField(default=0)
 
     joined_at = models.DateTimeField(auto_now_add=True)
     bio = models.TextField(default='', max_length=140)
@@ -52,13 +52,21 @@ class Actor(models.Model):
         """Returns the URL of the actor."""
         return f'/actors/{self.id}'
 
+    def get_display_name(self):
+        """Returns the display name of the actor."""
+        return f'{self.user.first_name} {self.user.last_name}'.strip()
+
+    def get_user_permissions(self):
+        """Returns the permissions of the actor."""
+        return self.user.get_user_permissions()
+
     def as_activitypub(self):
         """Returns the actor as an ActivityPub object."""
         return {
             '@context': 'https://www.w3.org/ns/activitystreams',
+            'name': self.get_display_name() or self.user.username,
             'id': self.get_actor_url(),
             'type': self.actor_type,
-            'name': self.display_name or self.username,
             'summary': self.bio,
             'inbox': self.inbox,
             'outbox': self.outbox,

@@ -40,7 +40,7 @@ class ActorView(View):
         route = kwargs.get('route')
 
         if route == 'actor':
-            return self.service.get_actor(request, kwargs.get('username'))
+            return self.service.get_actor(request, kwargs.get('username'), as_activitypub='activity_pub' in request.GET)
         elif route == 'webfinger':
             return self.service.get_webfinger(request)
 
@@ -57,6 +57,18 @@ class ActorView(View):
 
         actor = self.service.create_actor(data)
         return JsonResponse({'id': actor.get_actor_url()}, status=201)
+
+    @method_decorator(csrf_exempt)
+    def patch(self, request, *_, **kwargs):
+        """Handles PATCH requests for actor-related actions."""
+        data = json.loads(request.body)
+        username = kwargs.get('username')
+
+        if not username:
+            return JsonResponse({'error': 'Username is required'}, status=400)
+
+        actor = self.service.update_actor(username, data)
+        return JsonResponse({'id': actor.get_actor_url()}, status=200)
 
     @staticmethod
     def get_urlpatterns():
