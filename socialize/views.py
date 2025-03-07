@@ -90,7 +90,7 @@ class ActivityView(View):
         route = kwargs.get('route')
 
         if route == 'outbox':
-            return self.service.get_outbox(request, kwargs.get('username'))
+            return self.service.get_activity(request, kwargs.get('username'))
 
         return JsonResponse({'error': 'Invalid endpoint'}, status=404)
 
@@ -100,7 +100,7 @@ class ActivityView(View):
         route = kwargs.get('route')
 
         if route == 'inbox':
-            return self.service.post_inbox(request, kwargs.get('username'))
+            return self.service.create_activity(request, kwargs.get('username'))
 
         return HttpResponseNotAllowed(['POST'])
 

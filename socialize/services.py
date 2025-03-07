@@ -130,7 +130,7 @@ class ActorService:
 class ActivityService:
     """Handles ActivityPub Activity endpoints for inbox and outbox."""
 
-    def post_inbox(self, request, username):
+    def create_activity(self, request, username):
         """Handles ActivityPub inbox messages."""
         try:
             data = json.loads(request.body)
@@ -144,7 +144,7 @@ class ActivityService:
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON data'}, status=400)
 
-    def get_outbox(self, _, username):
+    def get_activity(self, _, username):
         """Returns the ActivityPub representation of an Actor's outbox."""
         actor = get_object_or_404(Actor, username=username)
         activities = Activity.objects.filter(
@@ -157,31 +157,6 @@ class ActivityService:
             'totalItems': activities.count(),
             'orderedItems': [activity.object_data for activity in activities]
         })
-
-    # TODO: Consider merging the logic in the following class code methods below into the ActivityService class.
-    def view_following(self, request):
-        u = self.current_user(request)
-        rels = []
-        for f in Followed.objects.filter(follower=u.id):
-            rels.append(Profile.objects.filter(user_id=f.followed)[0])
-        request.COOKIES['permissions'] = 'view_only'
-        return self.view_mosaic(request, rels)
-
-    def become_follower(self, request):
-        u = self.current_user(request).id
-        followed = Profile.objects.filter(
-            id=request.GET['profile_id'])[0].user_id
-        follow = Followed(followed=followed, follower=u)
-        follow.save()
-        return HttpResponse('Profile followed successfully')
-
-    def leave_follower(self, request):
-        u = self.current_user(request).id
-        followed = request.GET['profile_id']
-        query = Followed.objects.filter(followed=followed, follower=u)
-        if len(query):
-            query[0].delete()
-        return HttpResponse('Profile unfollowed successfully')
 
 
 class ObjectService:
