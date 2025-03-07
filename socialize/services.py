@@ -34,8 +34,6 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse, HttpResponse
-from django.template import Template, Context
-from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 
 from .models import Actor, Activity, Object, Vault, Token
@@ -255,15 +253,6 @@ class VaultService:
         else:
             return None
 
-    def authenticated(self):
-        name = self.get_current_user()
-        if not name:
-            # self.redirect('login')
-            self.render('templates/enter.html', STATIC_URL=settings.STATIC_URL)
-            return False
-        else:
-            return True
-
     def view_id(self, request):
         u = self.current_user(request)
         if 'first_turn' in request.GET:
@@ -289,13 +278,6 @@ class VaultService:
         p.save()
         return HttpResponse('Tutorial finalizado.')
 
-    def view_tutorial(self, request):
-        social = False if 'social' not in request.GET else True
-        return render(request, 'tutorial.html', {
-            'static_url': settings.STATIC_URL,
-            'social': social
-        })
-
     def finish_tutorial(self, request):
         whitespace = ' '
         data = request.POST
@@ -312,55 +294,12 @@ class VaultService:
         else:
             return self.update_profile(request, '/', u)
 
-    def profile_render(self, _):
-        source = """
-            <div class="col-xs-12 col-sm-6 col-md-3 col-lg-2 brick">
-                <a class="block profile" href="#" style="display:block; background:black">
-                <div class="box profile">
-                <div class="content">
-                <h2 class="name">{{ firstname }}</h2>
-                <div class="centered">{{ career }}</div>
-                </div>
-                {% if visual %}
-                    <img src="{{ visual }}" width="100%"/>
-                {% else %}
-                    <h1 class="centered"><span class="glyphicon glyphicon-user big-glyphicon"></span></h1>
-                {% endif %}
-                <div class="content centered">
-                {{ bio }}
-                <div class="id hidden">{{ id }}</div></div></div>
-                <div class="date"> Entrou em {{ day }} de {{month}}</div>
-            </a></div>
-        """
-        return Template(source).render(Context({
-            'firstname': self.user.first_name,
-            'career':    self.career,
-            'id':        self.id,
-            'visual':    self.visual,
-            'bio':       self.bio,
-            'day':       self.date.day,
-            'month':     self.month
-        }))
-
     def verify_permissions(self, request):
         perm = 'super'
         if 'permissions' in request.COOKIES:
             perm = request.COOKIES['permissions']
         permissions = True if 'super' in perm else False
         return permissions
-
-    def start(self, request):
-        # Painel do usuario
-        # u = self.user('efforia');
-        # permissions = self.verify_permissions(request)
-        # actions = settings.EFFORIA_ACTIONS; apps = []
-        # for a in settings.EFFORIA_APPS: apps.append(actions[a])
-        # return render(request,'interface.html',{'static_url':settings.STATIC_URL,
-        #                                     'user':user('efforia'),'perm':permissions,
-        #                                     'name':'%s %s' % (u.first_name,u.last_name),'apps':apps
-        #                                     },content_type='text/html')
-        # Pagina inicial
-        return render(request, 'index.html', {'static_url': settings.STATIC_URL}, content_type='text/html')
 
     def user(self, name):
         """Return a User object by username."""
@@ -369,10 +308,8 @@ class VaultService:
 
 class AuthenticationService:
     """
-    OAuth authentication service. 
-
-    This Authentication method checks for a provided HTTP_AUTHORIZATION
-    and looks up to see if this is a valid OAuth Access Token
+    Handles authentication for the socialize app
+    using OAuth providers like Google and Facebook
     """
 
     def authenticate(self, request, user_data, access_token):
