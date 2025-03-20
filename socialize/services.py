@@ -30,7 +30,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from django.conf import settings
 
 from .models import Actor, Activity, Object, Vault, Token

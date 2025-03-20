@@ -40,7 +40,10 @@ class ActorView(View):
         route = kwargs.get('route')
 
         if route == 'actor':
-            return self.service.get_actor(request, kwargs.get('username'), as_activitypub='activity_pub' in request.GET)
+            return self.service.get_actor(
+                request,
+                kwargs.get('username'),
+                as_activitypub='activity_pub' in request.GET)
         elif route == 'webfinger':
             return self.service.get_webfinger(request)
 
@@ -112,7 +115,10 @@ class ObjectView(View):
         route = kwargs.get('route')
 
         if route == 'object':
-            return self.service.get_object(request, kwargs.get('object_id'), as_activitypub='activity_pub' in request.GET)
+            return self.service.get_object(
+                request,
+                kwargs.get('object_id'),
+                as_activitypub='activity_pub' in request.GET)
 
         return JsonResponse({'error': 'Invalid endpoint'}, status=404)
 
