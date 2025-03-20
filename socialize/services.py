@@ -70,26 +70,6 @@ class ActorService:
 
         return actor
 
-    def update_actor(self, request, pk):
-        """Updates an actor's fields based on the provided data."""
-        try:
-            actor = Actor.objects.get(pk=pk)
-        except Actor.DoesNotExist:
-            return JsonResponse({'error': 'Actor not found'}, status=404)
-
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return HttpResponseBadRequest('Invalid JSON')
-
-        # Update the actor fields based on the provided data
-        for field, value in data.items():
-            if hasattr(actor, field):
-                setattr(actor, field, value)
-
-        actor.save()
-        return JsonResponse({'message': 'Actor updated successfully'})
-
     def generate_keys(self):
         """Generates a new private/public key pair."""
         private_key = rsa.generate_private_key(
@@ -189,35 +169,6 @@ class ObjectService:
             return JsonResponse(obj.as_activitypub())
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-
-    def update_object(self, request, pk):
-        """Updates an object's fields based on the provided data."""
-        try:
-            obj = Object.objects.get(pk=pk)
-        except Object.DoesNotExist:
-            return JsonResponse({'error': 'Object not found'}, status=404)
-
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-
-        # Update the object fields based on the provided data
-        for field, value in data.items():
-            if hasattr(obj, field):
-                setattr(obj, field, value)
-
-        obj.save()
-        return JsonResponse({'message': 'Object updated successfully'})
-
-    def delete_object(self, _, pk):
-        """Deletes an object based on the provided ID."""
-        try:
-            obj = Object.objects.get(pk=pk)
-            obj.delete()
-            return JsonResponse({'message': 'Object deleted successfully'})
-        except Object.DoesNotExist:
-            return JsonResponse({'error': 'Object not found'}, status=404)
 
 
 class VaultService:

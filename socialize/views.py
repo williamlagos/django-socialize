@@ -58,18 +58,6 @@ class ActorView(View):
         actor = self.service.create_actor(data)
         return JsonResponse({'id': actor.get_actor_url()}, status=201)
 
-    @method_decorator(csrf_exempt)
-    def patch(self, request, *_, **kwargs):
-        """Handles PATCH requests for actor-related actions."""
-        data = json.loads(request.body)
-        username = kwargs.get('username')
-
-        if not username:
-            return JsonResponse({'error': 'Username is required'}, status=400)
-
-        actor = self.service.update_actor(username, data)
-        return JsonResponse({'id': actor.get_actor_url()}, status=200)
-
     @staticmethod
     def get_urlpatterns():
         """Returns the URL patterns for the ActorService."""
@@ -136,24 +124,6 @@ class ObjectView(View):
             return self.service.create_object(request, kwargs.get('object_id'))
 
         return HttpResponseNotAllowed(['POST'])
-
-    def patch(self, request, *_, **kwargs):
-        """Handles PATCH requests for object-related actions."""
-        route = kwargs.get('route')
-
-        if route == 'object':
-            return self.service.update_object(request, kwargs.get('object_id'))
-
-        return HttpResponseNotAllowed(['PATCH'])
-
-    def delete(self, request, *_, **kwargs):
-        """Handles DELETE requests for object-related actions."""
-        route = kwargs.get('route')
-
-        if route == 'object':
-            return self.service.delete_object(request, kwargs.get('object_id'))
-
-        return HttpResponseNotAllowed(['DELETE'])
 
     @staticmethod
     def get_urlpatterns():
