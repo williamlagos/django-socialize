@@ -50,7 +50,3 @@ class TestFacebookSocialPlugin(unittest.TestCase):
         expected_datetime = datetime.datetime(2023, 1, 1)
         result = self.plugin.convert_datetime(date_str)
         self.assertEqual(result, expected_datetime)
-
-
-if __name__ == '__main__':
-    unittest.main()

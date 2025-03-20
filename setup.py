@@ -45,7 +45,7 @@ class DjangoTestCommand(Command):
         django.setup()
 
         # Run tests
-        execute_from_command_line(['manage.py', 'test', 'socialize.tests'])
+        execute_from_command_line(['manage.py', 'test', 'tests'])
 
 
 setup(
