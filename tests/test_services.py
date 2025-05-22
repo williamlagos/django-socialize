@@ -1,6 +1,8 @@
 """Test Service classes."""
 
 import json
+import django
+django.setup()
 
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, RequestFactory
@@ -19,7 +21,8 @@ class ActorServiceTest(TestCase):
         """Set up test data."""
         self.factory = RequestFactory()
         self.actor_service = ActorService()
-        self.actor = Actor.objects.create(username="testuser")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.actor = Actor.objects.create(user=self.user)
 
     def test_get_actor(self):
         """Test get_actor method."""
@@ -48,7 +51,8 @@ class ActivityServiceTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.activity_service = ActivityService()
-        self.actor = Actor.objects.create(username="testuser")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.actor = Actor.objects.create(user=self.user)
 
     def test_create_activity(self):
         """Test create_activity method."""
@@ -75,7 +79,8 @@ class ObjectServiceTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.object_service = ObjectService()
-        self.actor = Actor.objects.create(username="testuser")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.actor = Actor.objects.create(user=self.user)
 
     def test_get_object(self):
         """Test get_object method."""
@@ -102,7 +107,8 @@ class VaultServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.vault_service = VaultService()
-        self.actor = Actor.objects.create(username="testuser")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.actor = Actor.objects.create(user=self.user)
         Vault.objects.create(actor=self.actor, private_key="private_key")
 
     def test_get_private_key(self):
@@ -123,8 +129,8 @@ class AuthenticationServiceTest(TestCase):
         """Set up test data."""
         self.factory = RequestFactory()
         self.auth_service = AuthenticationService()
-        self.user = User.objects.create_user(
-            username="testuser", password="password")
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.actor = Actor.objects.create(user=self.user)
 
     @patch("socialize.services.authenticate")
     @patch("socialize.services.login")

@@ -3,6 +3,9 @@
 import json
 import datetime
 import unittest
+import django
+
+django.setup()
 
 from unittest.mock import patch
 from socialize.integrations.facebook import FacebookSocialPlugin
