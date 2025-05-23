@@ -1,17 +1,15 @@
 """Test Service classes."""
 
-import json
-import django
-django.setup()
-
-from unittest.mock import patch, MagicMock
-from django.test import TestCase, RequestFactory
-from django.contrib.auth.models import User
-
-from socialize.models import Actor, Activity, Object, Vault, Token
 from socialize.services import (
     ActorService, ActivityService, ObjectService, VaultService, AuthenticationService
 )
+from socialize.models import Actor, Activity, Object, Vault, Token
+from django.contrib.auth.models import User
+from django.test import TestCase, RequestFactory
+from unittest.mock import patch, MagicMock
+import json
+import django
+django.setup()
 
 
 class ActorServiceTest(TestCase):
@@ -21,7 +19,8 @@ class ActorServiceTest(TestCase):
         """Set up test data."""
         self.factory = RequestFactory()
         self.actor_service = ActorService()
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser", password="password")
         self.actor = Actor.objects.create(user=self.user)
 
     def test_get_actor(self):
@@ -51,7 +50,8 @@ class ActivityServiceTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.activity_service = ActivityService()
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser", password="password")
         self.actor = Actor.objects.create(user=self.user)
 
     def test_create_activity(self):
@@ -79,7 +79,8 @@ class ObjectServiceTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.object_service = ObjectService()
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser", password="password")
         self.actor = Actor.objects.create(user=self.user)
 
     def test_get_object(self):
@@ -107,7 +108,8 @@ class VaultServiceTest(TestCase):
     def setUp(self):
         """Set up test data."""
         self.vault_service = VaultService()
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser", password="password")
         self.actor = Actor.objects.create(user=self.user)
         Vault.objects.create(actor=self.actor, private_key="private_key")
 
@@ -129,7 +131,8 @@ class AuthenticationServiceTest(TestCase):
         """Set up test data."""
         self.factory = RequestFactory()
         self.auth_service = AuthenticationService()
-        self.user = User.objects.create_user(username="testuser", password="password")
+        self.user = User.objects.create_user(
+            username="testuser", password="password")
         self.actor = Actor.objects.create(user=self.user)
 
     @patch("socialize.services.authenticate")

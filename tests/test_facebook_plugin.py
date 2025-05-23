@@ -1,14 +1,13 @@
 """Test FacebookSocialPlugin class."""
 
+from socialize.integrations.facebook import FacebookSocialPlugin
+from unittest.mock import patch
 import json
 import datetime
 import unittest
 import django
 
 django.setup()
-
-from unittest.mock import patch
-from socialize.integrations.facebook import FacebookSocialPlugin
 
 
 class TestFacebookSocialPlugin(unittest.TestCase):
