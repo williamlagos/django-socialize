@@ -21,3 +21,10 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/yourusername/socialize"
+
+[tool.ruff]
+line-length = 88
+exclude = [".git", "__pycache__", "build", "dist", ".venv"]
+
+[tool.ruff.format]
+quote-style = "single"

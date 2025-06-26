@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('socialize', '0006_actor_user_token'),
     ]
@@ -23,6 +22,10 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='token',
             name='expires_at',
-            field=models.DateTimeField(default=datetime.datetime(2025, 6, 26, 15, 20, 10, 952372, tzinfo=datetime.timezone.utc)),
+            field=models.DateTimeField(
+                default=datetime.datetime(
+                    2025, 6, 26, 15, 20, 10, 952372, tzinfo=datetime.timezone.utc
+                )
+            ),
         ),
     ]

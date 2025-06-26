@@ -65,9 +65,9 @@ class ActivityPubSigningMiddleware:
         """Signs an outgoing request using the Actor's private key."""
         private_key_pem = VaultService.get_private_key(username)
         private_key = serialization.load_pem_private_key(
-            private_key_pem.encode(), password=None)
-        signature = private_key.sign(
-            data.encode(), padding.PKCS1v15(), SHA256())
+            private_key_pem.encode(), password=None
+        )
+        signature = private_key.sign(data.encode(), padding.PKCS1v15(), SHA256())
 
         return base64.b64encode(signature).decode()
 
@@ -85,15 +85,15 @@ class ActivityPubSigningMiddleware:
             return False
 
         public_key_pem = actor.public_key
-        public_key = serialization.load_pem_public_key(
-            public_key_pem.encode())
+        public_key = serialization.load_pem_public_key(public_key_pem.encode())
 
         decoded_signature = base64.b64decode(received_signature)
 
         try:
-            public_key.verify(decoded_signature, data.encode(),
-                              padding.PKCS1v15(), SHA256())
+            public_key.verify(
+                decoded_signature, data.encode(), padding.PKCS1v15(), SHA256()
+            )
             return True
         except (InvalidSignature, ValueError):
-            logging.exception("Error verifying signature.")
+            logging.exception('Error verifying signature.')
             return False

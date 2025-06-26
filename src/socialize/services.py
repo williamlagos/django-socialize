@@ -44,21 +44,23 @@ class ActorService:
         actor = get_object_or_404(Actor, user__username=username)
         if as_activitypub:
             return JsonResponse(actor.as_activitypub())
-        return JsonResponse({
-            'id': actor.id,
-            'username': actor.user.username,
-            'display_name': actor.get_display_name(),
-            'actor_type': actor.actor_type,
-            'bio': actor.bio,
-            'title': actor.title,
-            'birthdate': actor.birthdate,
-            'inbox': actor.inbox,
-            'outbox': actor.outbox,
-            'permissions': actor.get_user_permissions(),
-            'score': actor.score,
-            'created_at': actor.created_at,
-            'updated_at': actor.updated_at,
-        })
+        return JsonResponse(
+            {
+                'id': actor.id,
+                'username': actor.user.username,
+                'display_name': actor.get_display_name(),
+                'actor_type': actor.actor_type,
+                'bio': actor.bio,
+                'title': actor.title,
+                'birthdate': actor.birthdate,
+                'inbox': actor.inbox,
+                'outbox': actor.outbox,
+                'permissions': actor.get_user_permissions(),
+                'score': actor.score,
+                'created_at': actor.created_at,
+                'updated_at': actor.updated_at,
+            }
+        )
 
     def create_actor(self, data):
         """Creates a new Actor from the given data."""
@@ -71,18 +73,17 @@ class ActorService:
 
     def generate_keys(self):
         """Generates a new private/public key pair."""
-        private_key = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048)
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
         private_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         public_pem = private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
         return private_pem.decode(), public_pem.decode()
@@ -94,14 +95,18 @@ class ActorService:
             username = resource.split('acct:')[1].split('@')[0]
             actor = get_object_or_404(Actor, user__username=username)
 
-            return JsonResponse({
-                'subject': f'acct:{actor.user.username}@{settings.SITE_DOMAIN}',
-                'links': [{
-                    'rel': 'self',
-                    'type': 'application/activity+json',
-                    'href': actor.get_actor_url()
-                }]
-            })
+            return JsonResponse(
+                {
+                    'subject': f'acct:{actor.user.username}@{settings.SITE_DOMAIN}',
+                    'links': [
+                        {
+                            'rel': 'self',
+                            'type': 'application/activity+json',
+                            'href': actor.get_actor_url(),
+                        }
+                    ],
+                }
+            )
 
         return JsonResponse({'error': 'Invalid WebFinger request'}, status=400)
 
@@ -126,16 +131,17 @@ class ActivityService:
     def get_activity(self, _, username):
         """Returns the ActivityPub representation of an Actor's outbox."""
         actor = get_object_or_404(Actor, user__username=username)
-        activities = Activity.objects.filter(
-            actor=actor).order_by('-published_at')
+        activities = Activity.objects.filter(actor=actor).order_by('-published_at')
 
-        return JsonResponse({
-            '@context': 'https://www.w3.org/ns/activitystreams',
-            'id': actor.outbox,
-            'type': 'OrderedCollection',
-            'totalItems': activities.count(),
-            'orderedItems': [activity.object_data for activity in activities]
-        })
+        return JsonResponse(
+            {
+                '@context': 'https://www.w3.org/ns/activitystreams',
+                'id': actor.outbox,
+                'type': 'OrderedCollection',
+                'totalItems': activities.count(),
+                'orderedItems': [activity.object_data for activity in activities],
+            }
+        )
 
 
 class ObjectService:
@@ -146,14 +152,16 @@ class ObjectService:
         obj = get_object_or_404(Object, id=object_id)
         if as_activitypub:
             return JsonResponse(obj.as_activitypub())
-        return JsonResponse({
-            'id': obj.id,
-            'actor': obj.actor.user.username,
-            'object_type': obj.object_type,
-            'content': obj.content,
-            'created_at': obj.created_at,
-            'updated_at': obj.updated_at,
-        })
+        return JsonResponse(
+            {
+                'id': obj.id,
+                'actor': obj.actor.user.username,
+                'object_type': obj.object_type,
+                'content': obj.content,
+                'created_at': obj.created_at,
+                'updated_at': obj.updated_at,
+            }
+        )
 
     def create_object(self, request, username):
         """Creates a new Object from the given data."""
@@ -186,10 +194,14 @@ class VaultService:
         try:
             actor = Actor.objects.get(user__username=username)
             vault = Vault.objects.get(actor=actor)
-            stored_public_key = vault.private_key.public_key().public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ).decode()
+            stored_public_key = (
+                vault.private_key.public_key()
+                .public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+                .decode()
+            )
 
             if stored_public_key == public_key:
                 return actor.user
@@ -224,14 +236,12 @@ class AuthenticationService:
         # If OAuth authentication is not successful, create the actor
         user = authenticate(username=user_data['username'])
         if not user:
-            user = ActorService().create_actor(
-                {'username': user_data['username']}).user
+            user = ActorService().create_actor({'username': user_data['username']}).user
 
         login(request, user)
 
         # If OAuth login process is successful, return the access token
-        token, _ = Token.objects.get_or_create(
-            access_token=access_token, user=user)
+        token, _ = Token.objects.get_or_create(access_token=access_token, user=user)
         return JsonResponse({'access_token': token.access_token, 'expires_in': 3600})
 
     def verify_access_token(self, provider, token):
@@ -244,8 +254,7 @@ class AuthenticationService:
         if provider not in provider_urls:
             return None
 
-        response = requests.get(
-            provider_urls[provider].format(token=token), timeout=10)
+        response = requests.get(provider_urls[provider].format(token=token), timeout=10)
         if response.status_code != 200:
             return None
 

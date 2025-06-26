@@ -21,8 +21,8 @@
 from .views import ActorView, ActivityView, ObjectView, AuthenticationView
 
 urlpatterns = (
-    ActorView.get_urlpatterns() +
-    ActivityView.get_urlpatterns() +
-    ObjectView.get_urlpatterns() +
-    AuthenticationView.get_urlpatterns()
+    ActorView.get_urlpatterns()
+    + ActivityView.get_urlpatterns()
+    + ObjectView.get_urlpatterns()
+    + AuthenticationView.get_urlpatterns()
 )

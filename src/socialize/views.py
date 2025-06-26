@@ -28,11 +28,17 @@ from django.http import JsonResponse, HttpResponseNotAllowed
 from django.utils.decorators import method_decorator
 from django.urls import path
 
-from .services import ActorService, ActivityService, ObjectService, AuthenticationService
+from .services import (
+    ActorService,
+    ActivityService,
+    ObjectService,
+    AuthenticationService,
+)
 
 
 class ActorView(View):
     """Handles ActivityPub Actor endpoints."""
+
     service = ActorService()
 
     def get(self, request, *_, **kwargs):
@@ -43,7 +49,8 @@ class ActorView(View):
             return self.service.get_actor(
                 request,
                 kwargs.get('username'),
-                as_activitypub='activity_pub' in request.GET)
+                as_activitypub='activity_pub' in request.GET,
+            )
         elif route == 'webfinger':
             return self.service.get_webfinger(request)
 
@@ -65,15 +72,24 @@ class ActorView(View):
     def get_urlpatterns():
         """Returns the URL patterns for the ActorService."""
         return [
-            path('users/<str:username>/', ActorView.as_view(),
-                 {'route': 'actor'}, name='actor'),
-            path('.well-known/webfinger', ActorView.as_view(),
-                 {'route': 'webfinger'}, name='webfinger'),
+            path(
+                'users/<str:username>/',
+                ActorView.as_view(),
+                {'route': 'actor'},
+                name='actor',
+            ),
+            path(
+                '.well-known/webfinger',
+                ActorView.as_view(),
+                {'route': 'webfinger'},
+                name='webfinger',
+            ),
         ]
 
 
 class ActivityView(View):
     """Handles ActivityPub Activity endpoints for inbox and outbox."""
+
     service = ActivityService()
 
     def get(self, request, *_, **kwargs):
@@ -99,15 +115,24 @@ class ActivityView(View):
     def get_urlpatterns():
         """Returns the URL patterns for the ActivityService."""
         return [
-            path('users/<str:username>/outbox/', ActivityView.as_view(),
-                 {'route': 'outbox'}, name='outbox'),
-            path('users/<str:username>/inbox/', ActivityView.as_view(),
-                 {'route': 'inbox'}, name='inbox'),
+            path(
+                'users/<str:username>/outbox/',
+                ActivityView.as_view(),
+                {'route': 'outbox'},
+                name='outbox',
+            ),
+            path(
+                'users/<str:username>/inbox/',
+                ActivityView.as_view(),
+                {'route': 'inbox'},
+                name='inbox',
+            ),
         ]
 
 
 class ObjectView(View):
     """Handles ActivityPub Object endpoints."""
+
     service = ObjectService()
 
     def get(self, request, *_, **kwargs):
@@ -118,7 +143,8 @@ class ObjectView(View):
             return self.service.get_object(
                 request,
                 kwargs.get('object_id'),
-                as_activitypub='activity_pub' in request.GET)
+                as_activitypub='activity_pub' in request.GET,
+            )
 
         return JsonResponse({'error': 'Invalid endpoint'}, status=404)
 
@@ -135,16 +161,19 @@ class ObjectView(View):
     def get_urlpatterns():
         """Returns the URL patterns for the ObjectService."""
         return [
-            path('objects/', ObjectView.as_view(),
-                 {'route': 'object'}, name='object'),
-            path('objects/<uuid:object_id>/', ObjectView.as_view(),
-                 {'route': 'object'}, name='object'),
+            path('objects/', ObjectView.as_view(), {'route': 'object'}, name='object'),
+            path(
+                'objects/<uuid:object_id>/',
+                ObjectView.as_view(),
+                {'route': 'object'},
+                name='object',
+            ),
         ]
 
 
 class AuthenticationView(View):
     """
-    OAuth authenticator. 
+    OAuth authenticator.
 
     This Authentication method checks for a provided HTTP_AUTHORIZATION
     and looks up to see if this is a valid OAuth Access Token
@@ -158,13 +187,13 @@ class AuthenticationView(View):
         values in "Authorization" header, or as a GET request
         or in a POST body.
         """
-        provider = request.POST.get(
-            'provider')  # OAuth provider, e.g. 'google'
-        access_token = request.POST.get(
-            'access_token')  # Token from OAuth provider
+        provider = request.POST.get('provider')  # OAuth provider, e.g. 'google'
+        access_token = request.POST.get('access_token')  # Token from OAuth provider
 
         if not provider or not access_token:
-            return JsonResponse({'error': 'Missing provider or access_token'}, status=400)
+            return JsonResponse(
+                {'error': 'Missing provider or access_token'}, status=400
+            )
 
         # Verify token with the provider
         user_data = self.service.verify_access_token(provider, access_token)

@@ -38,9 +38,7 @@ class FacebookSocialPlugin:
 
     def update_status(self, content):
         """Updates the user's Facebook status."""
-        data = {
-            'message': f'{content}'.encode('utf-8')
-        }
+        data = {'message': f'{content}'.encode('utf-8')}
 
         self.graph_request('/me/feed', data)
         return 'Published posting successfully on Facebook'
@@ -49,10 +47,12 @@ class FacebookSocialPlugin:
         """Sends an event to the user's Facebook account."""
         data = {
             'name': name.encode('utf-8'),
-            'start_time': self.convert_datetime(start_time).strftime('%Y-%m-%dT%H:%M:%S').encode('utf-8'),
+            'start_time': self.convert_datetime(start_time)
+            .strftime('%Y-%m-%dT%H:%M:%S')
+            .encode('utf-8'),
             'description': description.encode('utf-8'),
             'location': location.encode('utf-8'),
-            'ticket_uri': ticket_uri
+            'ticket_uri': ticket_uri,
         }
 
         response = self.graph_request('/me/events', data)
@@ -74,11 +74,10 @@ class FacebookSocialPlugin:
         full_url = f'{self.base_url}{url}'
         headers = {
             'Authorization': f'Bearer {self.access_token}',
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/x-www-form-urlencoded',
         }
         encoded_data = urllib.parse.urlencode(data).encode('utf-8')
-        request = urllib.request.Request(
-            full_url, data=encoded_data, headers=headers)
+        request = urllib.request.Request(full_url, data=encoded_data, headers=headers)
 
         try:
             with urllib.request.urlopen(request) as response:

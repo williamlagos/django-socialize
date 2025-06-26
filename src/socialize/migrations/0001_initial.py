@@ -7,7 +7,6 @@ import django.utils.timezone
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -18,7 +17,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Followed',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
                 ('followed', models.IntegerField(default=1)),
                 ('follower', models.IntegerField(default=2)),
                 ('date', models.DateTimeField(auto_now_add=True)),
@@ -27,7 +34,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Profile',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
                 ('coins', models.IntegerField(default=0)),
                 ('visual', models.CharField(default='', max_length=100)),
                 ('career', models.CharField(default='', max_length=50)),
@@ -37,7 +52,14 @@ class Migration(migrations.Migration):
                 ('facebook_token', models.TextField(default='', max_length=120)),
                 ('bio', models.TextField(default='', max_length=140)),
                 ('date', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to=settings.AUTH_USER_MODEL)),
+                (
+                    'user',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='+',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

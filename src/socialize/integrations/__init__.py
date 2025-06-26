@@ -18,4 +18,4 @@
 # along with Socialize. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from .facebook import *
+from .facebook import FacebookSocialPlugin as FacebookSocialPlugin

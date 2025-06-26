@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('socialize', '0002_activitypubobject_activitypubactivity'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -18,7 +17,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Activity',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ('activity_type', models.CharField(max_length=50)),
                 ('object_data', models.JSONField()),
                 ('published_at', models.DateTimeField(auto_now_add=True)),
@@ -27,9 +34,20 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Actor',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ('username', models.CharField(max_length=100, unique=True)),
-                ('display_name', models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    'display_name',
+                    models.CharField(blank=True, max_length=255, null=True),
+                ),
                 ('inbox', models.URLField(blank=True, null=True)),
                 ('outbox', models.URLField(blank=True, null=True)),
                 ('actor_type', models.CharField(default='Person', max_length=50)),
@@ -42,21 +60,49 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Object',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ('object_type', models.CharField(default='Note', max_length=50)),
                 ('content', models.TextField()),
                 ('published_at', models.DateTimeField(auto_now_add=True)),
-                ('actor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    'actor',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
             name='Vault',
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
                 ('access_key', models.CharField(max_length=255)),
                 ('secret_key', models.CharField(max_length=255)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('actor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='socialize.actor')),
+                (
+                    'actor',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='socialize.actor',
+                    ),
+                ),
             ],
         ),
         migrations.RemoveField(
@@ -81,7 +127,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='activity',
             name='actor',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='socialize.actor'),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to='socialize.actor'
+            ),
         ),
         migrations.DeleteModel(
             name='ActivityPubActivity',

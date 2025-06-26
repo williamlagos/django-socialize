@@ -30,6 +30,7 @@ from django.utils.timezone import now
 
 class Actor(models.Model):
     """Represents an actor in the social network. (e.g. Person, Group)"""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     display_name = models.CharField(max_length=255, blank=True, null=True)
@@ -75,6 +76,7 @@ class Actor(models.Model):
 
 class Activity(models.Model):
     """Represents an activity in the social network. (e.g. Post, Like, Follow)"""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Create, Update, Delete, Follow, Like, Block, Undo
     activity_type = models.CharField(max_length=50)
@@ -85,6 +87,7 @@ class Activity(models.Model):
 
 class Object(models.Model):
     """Represents an object in the social network. (e.g. Post, Image, Video)"""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     object_type = models.CharField(max_length=50, default='Note')
     content = models.TextField()
@@ -109,23 +112,24 @@ class Object(models.Model):
 
 class Vault(models.Model):
     """Represents a vault with its access keys in the social network. (e.g. Password, Tokens)"""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(Actor, on_delete=models.CASCADE)
     private_key = models.TextField()
 
     class Meta:
         """Meta options for the Vault model."""
+
         verbose_name = 'Vault'
         verbose_name_plural = 'Vaults'
 
 
 class Token(models.Model):
     """Represents an OAuth standard token in the social network. (e.g. Access, Refresh)"""
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    access_token = models.CharField(
-        max_length=255, unique=True, default=uuid.uuid4)
-    expires_at = models.DateTimeField(
-        default=now() + datetime.timedelta(hours=1))
+    access_token = models.CharField(max_length=255, unique=True, default=uuid.uuid4)
+    expires_at = models.DateTimeField(default=now() + datetime.timedelta(hours=1))
 
     def is_valid(self):
         """Returns whether the token is still valid."""

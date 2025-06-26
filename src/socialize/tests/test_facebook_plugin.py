@@ -22,17 +22,22 @@ class TestFacebookSocialPlugin(unittest.TestCase):
         """Test update_status method."""
         mock_graph_request.return_value = json.dumps({'id': '12345'})
         response = self.plugin.update_status('Hello World')
-        self.assertEqual(
-            response, 'Published posting successfully on Facebook')
+        self.assertEqual(response, 'Published posting successfully on Facebook')
         mock_graph_request.assert_called_once_with(
-            '/me/feed', {'message': 'Hello World'.encode('utf-8')})
+            '/me/feed', {'message': 'Hello World'.encode('utf-8')}
+        )
 
     @patch('socialize.integrations.facebook.FacebookSocialPlugin.graph_request')
     def test_send_event(self, mock_graph_request):
         """Test send_event method."""
         mock_graph_request.return_value = json.dumps({'id': '12345'})
         response = self.plugin.send_event(
-            'Event Name', '01/01/2023', 'Event Description', 'Event Location', 'http://ticket.uri')
+            'Event Name',
+            '01/01/2023',
+            'Event Description',
+            'Event Location',
+            'http://ticket.uri',
+        )
         self.assertEqual(response, '12345')
         mock_graph_request.assert_called_once()
 
@@ -42,9 +47,11 @@ class TestFacebookSocialPlugin(unittest.TestCase):
         mock_graph_request.return_value = json.dumps({'id': '12345'})
         response = self.plugin.send_event_cover('12345', 'http://photo.url')
         self.assertEqual(
-            response, 'Published image cover on event successfully on Facebook')
+            response, 'Published image cover on event successfully on Facebook'
+        )
         mock_graph_request.assert_called_once_with(
-            '12345', {'cover_url': 'http://photo.url'})
+            '12345', {'cover_url': 'http://photo.url'}
+        )
 
     def test_convert_datetime(self):
         """Test convert_datetime method."""

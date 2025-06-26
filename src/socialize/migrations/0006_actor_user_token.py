@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('socialize', '0005_alter_vault_options_remove_vault_access_key_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -18,16 +17,44 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='actor',
             name='user',
-            field=models.OneToOneField(default=0, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            field=models.OneToOneField(
+                default=0,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
             preserve_default=False,
         ),
         migrations.CreateModel(
             name='Token',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('access_token', models.CharField(default=uuid.uuid4, max_length=255, unique=True)),
-                ('expires_at', models.DateTimeField(default=datetime.datetime(2025, 3, 5, 16, 10, 44, 77978, tzinfo=datetime.timezone.utc))),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                (
+                    'access_token',
+                    models.CharField(default=uuid.uuid4, max_length=255, unique=True),
+                ),
+                (
+                    'expires_at',
+                    models.DateTimeField(
+                        default=datetime.datetime(
+                            2025, 3, 5, 16, 10, 44, 77978, tzinfo=datetime.timezone.utc
+                        )
+                    ),
+                ),
+                (
+                    'user',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('socialize', '0003_activity_actor_object_vault_and_more'),
     ]
@@ -14,6 +13,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='object',
             name='actor',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='socialize.actor'),
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to='socialize.actor'
+            ),
         ),
     ]

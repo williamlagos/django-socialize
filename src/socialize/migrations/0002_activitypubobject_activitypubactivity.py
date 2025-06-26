@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('socialize', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -16,21 +15,45 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ActivityPubObject',
             fields=[
-                ('id', models.CharField(max_length=255, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.CharField(max_length=255, primary_key=True, serialize=False),
+                ),
                 ('type', models.CharField(max_length=50)),
                 ('content', models.TextField()),
                 ('published', models.DateTimeField(auto_now_add=True)),
-                ('actor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    'actor',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
             name='ActivityPubActivity',
             fields=[
-                ('id', models.CharField(max_length=255, primary_key=True, serialize=False)),
+                (
+                    'id',
+                    models.CharField(max_length=255, primary_key=True, serialize=False),
+                ),
                 ('type', models.CharField(max_length=50)),
                 ('published', models.DateTimeField(auto_now_add=True)),
-                ('actor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('object', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='socialize.activitypubobject')),
+                (
+                    'actor',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    'object',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='socialize.activitypubobject',
+                    ),
+                ),
             ],
         ),
     ]
