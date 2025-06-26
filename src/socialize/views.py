@@ -137,7 +137,7 @@ class ObjectView(View):
         return [
             path('objects/', ObjectView.as_view(),
                  {'route': 'object'}, name='object'),
-            path('objects/<uuid:object_id>/', ObjectService.as_view(),
+            path('objects/<uuid:object_id>/', ObjectView.as_view(),
                  {'route': 'object'}, name='object'),
         ]
 

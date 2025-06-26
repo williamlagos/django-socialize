@@ -33,7 +33,7 @@ class ActorServiceTest(TestCase):
         """Test create_actor method."""
         data = {"username": "newuser"}
         actor = self.actor_service.create_actor(data)
-        self.assertEqual(actor.username, "newuser")
+        self.assertEqual(actor.user.username, "newuser")
 
     @patch("socialize.services.ActorService.generate_keys")
     def test_generate_keys(self, mock_generate_keys):

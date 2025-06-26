@@ -41,7 +41,7 @@ class ActorService:
 
     def get_actor(self, _, username, as_activitypub=True):
         """Returns the ActivityPub representation of an Actor for the given username."""
-        actor = get_object_or_404(Actor, username=username)
+        actor = get_object_or_404(Actor, user__username=username)
         if as_activitypub:
             return JsonResponse(actor.as_activitypub())
         return JsonResponse({
@@ -63,9 +63,8 @@ class ActorService:
     def create_actor(self, data):
         """Creates a new Actor from the given data."""
         private_key, public_key = self.generate_keys()
-
-        actor = Actor.objects.create(
-            username=data.get('username'), public_key=public_key)
+        user, _ = User.objects.get_or_create(username=data.get('username'))
+        actor = Actor.objects.create(user=user, public_key=public_key)
         Vault.objects.create(actor=actor, private_key=private_key)
 
         return actor
@@ -93,10 +92,10 @@ class ActorService:
         resource = request.GET.get('resource')
         if resource.startswith('acct:'):
             username = resource.split('acct:')[1].split('@')[0]
-            actor = get_object_or_404(Actor, username=username)
+            actor = get_object_or_404(Actor, user__username=username)
 
             return JsonResponse({
-                'subject': f'acct:{actor.username}@{settings.SITE_DOMAIN}',
+                'subject': f'acct:{actor.user.username}@{settings.SITE_DOMAIN}',
                 'links': [{
                     'rel': 'self',
                     'type': 'application/activity+json',
@@ -114,7 +113,7 @@ class ActivityService:
         """Handles ActivityPub inbox messages."""
         try:
             data = json.loads(request.body)
-            actor = get_object_or_404(Actor, username=username)
+            actor = get_object_or_404(Actor, user__username=username)
             Activity.objects.create(
                 actor=actor,
                 object_data=data,
@@ -126,7 +125,7 @@ class ActivityService:
 
     def get_activity(self, _, username):
         """Returns the ActivityPub representation of an Actor's outbox."""
-        actor = get_object_or_404(Actor, username=username)
+        actor = get_object_or_404(Actor, user__username=username)
         activities = Activity.objects.filter(
             actor=actor).order_by('-published_at')
 
@@ -149,7 +148,7 @@ class ObjectService:
             return JsonResponse(obj.as_activitypub())
         return JsonResponse({
             'id': obj.id,
-            'actor': obj.actor.username,
+            'actor': obj.actor.user.username,
             'object_type': obj.object_type,
             'content': obj.content,
             'created_at': obj.created_at,
@@ -160,7 +159,7 @@ class ObjectService:
         """Creates a new Object from the given data."""
         try:
             data = json.loads(request.body)
-            actor = get_object_or_404(Actor, username=username)
+            actor = get_object_or_404(Actor, user__username=username)
             obj = Object.objects.create(
                 actor=actor,
                 object_type=data.get('type'),
@@ -177,7 +176,7 @@ class VaultService:
     @staticmethod
     def get_private_key(username):
         """Fetches the private key for an actor securely"""
-        vault = Vault.objects.filter(actor__username=username).first()
+        vault = Vault.objects.filter(actor__user__username=username).first()
         if not vault:
             raise PermissionDenied('Access denied: Private key not found.')
         return vault.private_key
@@ -185,7 +184,7 @@ class VaultService:
     def authenticate(self, username, public_key):
         """Authenticates the user based on the public key."""
         try:
-            actor = Actor.objects.get(username=username)
+            actor = Actor.objects.get(user__username=username)
             vault = Vault.objects.get(actor=actor)
             stored_public_key = vault.private_key.public_key().public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -206,7 +205,7 @@ class VaultService:
         if not user:
             return JsonResponse({'error': 'User not found'}, status=404)
 
-        vault = Vault.objects.filter(actor__username=username).first()
+        vault = Vault.objects.filter(actor__user__username=username).first()
         if not vault:
             return JsonResponse({'error': 'Private key not found in vault'}, status=404)
 

@@ -49,7 +49,7 @@ class FacebookSocialPlugin:
         """Sends an event to the user's Facebook account."""
         data = {
             'name': name.encode('utf-8'),
-            'start_time': self.convert_datetime(start_time).encode('utf-8'),
+            'start_time': self.convert_datetime(start_time).strftime('%Y-%m-%dT%H:%M:%S').encode('utf-8'),
             'description': description.encode('utf-8'),
             'location': location.encode('utf-8'),
             'ticket_uri': ticket_uri
@@ -67,7 +67,7 @@ class FacebookSocialPlugin:
     def convert_datetime(self, date_value):
         """Converts a date string to a datetime object."""
         d = time.strptime(date_value, '%d/%m/%Y')
-        return datetime.fromtimestamp(time.mktime(d))
+        return datetime.datetime.fromtimestamp(time.mktime(d))
 
     def graph_request(self, url, data):
         """Sends a POST request to the Facebook API."""
