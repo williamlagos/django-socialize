@@ -91,7 +91,7 @@ class ActorService:
     def get_webfinger(self, request):
         """Returns the WebFinger data request for the user discovery."""
         resource = request.GET.get('resource')
-        if resource.startswith('acct:'):
+        if resource and resource.startswith('acct:'):
             username = resource.split('acct:')[1].split('@')[0]
             actor = get_object_or_404(Actor, user__username=username)
 
