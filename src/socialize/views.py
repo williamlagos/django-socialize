@@ -1,5 +1,6 @@
 """Views for the socialize app."""
-#!/usr/bin/python
+
+# !/usr/bin/python
 # pylint: disable=E1101
 #
 # This file is part of django-socialize project.
@@ -22,114 +23,162 @@
 
 import json
 
+from django.http import HttpResponseNotAllowed, JsonResponse
+from django.urls import path
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponseNotAllowed
-from django.utils.decorators import method_decorator
-from django.urls import path
 
 from .services import (
-    ActorService,
     ActivityService,
-    ObjectService,
+    ActorService,
     AuthenticationService,
+    ObjectService,
 )
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ActorView(View):
-    """Handles ActivityPub Actor endpoints."""
+    """Handles ActivityPub Actor, WebFinger, Collections, and NodeInfo endpoints."""
 
     service = ActorService()
 
     def get(self, request, *_, **kwargs):
         """Handles GET requests for actor-related actions."""
-        route = kwargs.get('route')
+        route = kwargs.get("route")
 
-        if route == 'actor':
+        if route == "actor":
+            as_ap = (
+                "activity_pub" in request.GET
+                or "application/activity+json" in request.headers.get("Accept", "")
+                or "application/ld+json" in request.headers.get("Accept", "")
+                or True
+            )
             return self.service.get_actor(
                 request,
-                kwargs.get('username'),
-                as_activitypub='activity_pub' in request.GET,
+                kwargs.get("username"),
+                as_activitypub=as_ap,
             )
-        elif route == 'webfinger':
+        elif route == "webfinger":
             return self.service.get_webfinger(request)
+        elif route == "followers":
+            return self.service.get_followers(request, kwargs.get("username"))
+        elif route == "following":
+            return self.service.get_following(request, kwargs.get("username"))
+        elif route == "nodeinfo_discovery":
+            return self.service.get_nodeinfo_discovery(request)
+        elif route == "nodeinfo_2_0":
+            return self.service.get_nodeinfo_2_0(request)
 
-        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+        return JsonResponse({"error": "Invalid endpoint"}, status=404)
 
-    @method_decorator(csrf_exempt, name='dispatch')
-    def post(self, request):
-        """Handles POST requests for actor-related actions."""
-        data = json.loads(request.body)
-        username = data.get('username')
+    def post(self, request, *_, **kwargs):
+        """Handles POST requests for actor creation."""
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON body"}, status=400)
 
+        username = data.get("username")
         if not username:
-            return JsonResponse({'error': 'Username is required'}, status=400)
+            return JsonResponse({"error": "Username is required"}, status=400)
 
         actor = self.service.create_actor(data)
-        return JsonResponse({'id': actor.get_actor_url()}, status=201)
+        return JsonResponse({"id": actor.get_actor_url()}, status=201)
 
     @staticmethod
     def get_urlpatterns():
         """Returns the URL patterns for the ActorService."""
         return [
             path(
-                'users/<str:username>/',
+                "users/<str:username>/",
                 ActorView.as_view(),
-                {'route': 'actor'},
-                name='actor',
+                {"route": "actor"},
+                name="actor",
             ),
             path(
-                '.well-known/webfinger',
+                "users/<str:username>/followers/",
                 ActorView.as_view(),
-                {'route': 'webfinger'},
-                name='webfinger',
+                {"route": "followers"},
+                name="followers",
+            ),
+            path(
+                "users/<str:username>/following/",
+                ActorView.as_view(),
+                {"route": "following"},
+                name="following",
+            ),
+            path(
+                ".well-known/webfinger",
+                ActorView.as_view(),
+                {"route": "webfinger"},
+                name="webfinger",
+            ),
+            path(
+                ".well-known/nodeinfo",
+                ActorView.as_view(),
+                {"route": "nodeinfo_discovery"},
+                name="nodeinfo_discovery",
+            ),
+            path(
+                "nodeinfo/2.0",
+                ActorView.as_view(),
+                {"route": "nodeinfo_2_0"},
+                name="nodeinfo_2_0",
             ),
         ]
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ActivityView(View):
-    """Handles ActivityPub Activity endpoints for inbox and outbox."""
+    """Handles ActivityPub Activity endpoints for inbox (personal & shared) and outbox."""
 
     service = ActivityService()
 
     def get(self, request, *_, **kwargs):
         """Handles GET requests for activity-related actions."""
-        route = kwargs.get('route')
+        route = kwargs.get("route")
 
-        if route == 'outbox':
-            return self.service.get_activity(request, kwargs.get('username'))
+        if route == "outbox":
+            return self.service.get_activity(request, kwargs.get("username"))
 
-        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+        return JsonResponse({"error": "Invalid endpoint"}, status=404)
 
-    @method_decorator(csrf_exempt)
     def post(self, request, *_, **kwargs):
         """Handles POST requests for activity-related actions on inbox."""
-        route = kwargs.get('route')
+        route = kwargs.get("route")
 
-        if route == 'inbox':
-            return self.service.create_activity(request, kwargs.get('username'))
+        if route in ("inbox", "shared_inbox"):
+            return self.service.create_activity(request, kwargs.get("username"))
 
-        return HttpResponseNotAllowed(['POST'])
+        return HttpResponseNotAllowed(["POST"])
 
     @staticmethod
     def get_urlpatterns():
         """Returns the URL patterns for the ActivityService."""
         return [
             path(
-                'users/<str:username>/outbox/',
+                "users/<str:username>/outbox/",
                 ActivityView.as_view(),
-                {'route': 'outbox'},
-                name='outbox',
+                {"route": "outbox"},
+                name="outbox",
             ),
             path(
-                'users/<str:username>/inbox/',
+                "users/<str:username>/inbox/",
                 ActivityView.as_view(),
-                {'route': 'inbox'},
-                name='inbox',
+                {"route": "inbox"},
+                name="inbox",
+            ),
+            path(
+                "inbox/",
+                ActivityView.as_view(),
+                {"route": "shared_inbox"},
+                name="shared_inbox",
             ),
         ]
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ObjectView(View):
     """Handles ActivityPub Object endpoints."""
 
@@ -137,68 +186,62 @@ class ObjectView(View):
 
     def get(self, request, *_, **kwargs):
         """Handles GET requests for object-related actions."""
-        route = kwargs.get('route')
+        route = kwargs.get("route")
 
-        if route == 'object':
+        if route == "object":
             return self.service.get_object(
                 request,
-                kwargs.get('object_id'),
-                as_activitypub='activity_pub' in request.GET,
+                kwargs.get("object_id"),
+                as_activitypub=True,
             )
 
-        return JsonResponse({'error': 'Invalid endpoint'}, status=404)
+        return JsonResponse({"error": "Invalid endpoint"}, status=404)
 
     def post(self, request, *_, **kwargs):
-        """Handles POST requests for object-related actions."""
-        route = kwargs.get('route')
+        """Handles POST requests for object creation."""
+        route = kwargs.get("route")
 
-        if route == 'object':
-            return self.service.create_object(request, kwargs.get('object_id'))
+        if route == "object":
+            return self.service.create_object(request, kwargs.get("username"))
 
-        return HttpResponseNotAllowed(['POST'])
+        return HttpResponseNotAllowed(["POST"])
 
     @staticmethod
     def get_urlpatterns():
         """Returns the URL patterns for the ObjectService."""
         return [
-            path('objects/', ObjectView.as_view(), {'route': 'object'}, name='object'),
+            path("objects/", ObjectView.as_view(), {"route": "object"}, name="object"),
             path(
-                'objects/<uuid:object_id>/',
+                "objects/<uuid:object_id>/",
                 ObjectView.as_view(),
-                {'route': 'object'},
-                name='object',
+                {"route": "object"},
+                name="object_detail",
             ),
         ]
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class AuthenticationView(View):
     """
     OAuth authenticator.
-
-    This Authentication method checks for a provided HTTP_AUTHORIZATION
-    and looks up to see if this is a valid OAuth Access Token
+    Checks for a provided access token and authenticates with provider.
     """
 
     service = AuthenticationService()
 
     def post(self, request):
-        """
-        Verify 2-legged oauth request. Parameters accepted as
-        values in "Authorization" header, or as a GET request
-        or in a POST body.
-        """
-        provider = request.POST.get('provider')  # OAuth provider, e.g. 'google'
-        access_token = request.POST.get('access_token')  # Token from OAuth provider
+        """Verify 2-legged OAuth request."""
+        provider = request.POST.get("provider")
+        access_token = request.POST.get("access_token")
 
         if not provider or not access_token:
             return JsonResponse(
-                {'error': 'Missing provider or access_token'}, status=400
+                {"error": "Missing provider or access_token"}, status=400
             )
 
-        # Verify token with the provider
         user_data = self.service.verify_access_token(provider, access_token)
         if not user_data:
-            return JsonResponse({'error': 'Invalid access_token'}, status=401)
+            return JsonResponse({"error": "Invalid access_token"}, status=401)
 
         return self.service.authenticate(request, user_data, access_token)
 
@@ -206,5 +249,5 @@ class AuthenticationView(View):
     def get_urlpatterns():
         """Returns the URL patterns for the authentication service."""
         return [
-            path('auth/', AuthenticationView.as_view(), name='auth'),
+            path("auth/", AuthenticationView.as_view(), name="auth"),
         ]
