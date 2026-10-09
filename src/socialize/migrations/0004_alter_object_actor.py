@@ -10,11 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='object',
-            name='actor',
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='socialize.actor'
-            ),
-        ),
     ]

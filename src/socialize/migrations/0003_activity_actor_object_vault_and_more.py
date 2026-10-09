@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                     'actor',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        to='socialize.actor',
                     ),
                 ),
             ],
