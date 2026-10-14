@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "socialize"
-version = "0.2.0"
+name = "django-socialize"
+version = "0.6.0"
 description = "A pluggable ActivityPub server for Django projects."
 authors = [
     { name = "William Oliveira de Lagos", email = "william.lagos@icloud.com" }
