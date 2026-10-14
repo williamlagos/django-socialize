@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "socialize"
-version = "0.1.0"
+version = "0.2.0"
 description = "A pluggable ActivityPub server for Django projects."
 authors = [
-    { name = "Your Name", email = "your@email.com" }
+    { name = "William Oliveira de Lagos", email = "william.lagos@icloud.com" }
 ]
 readme = "README.rst"
 license = { file = "LICENSE" }
@@ -16,11 +16,16 @@ dependencies = [
     "django>=3.2",
     "requests>=2.0",
     "cryptography>=3.0",
-    "pytest-django>=4.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-django>=4.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/socialize"
+Homepage = "https://github.com/williamlagos/django-socialize"
 
 [tool.ruff]
 line-length = 88
